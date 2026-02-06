@@ -3641,7 +3641,6 @@ app.delete("/reports/movements/:id", requireAuth, async (req, res) => {
     const adminUser = await requireAdmin(req, res);
     if (!adminUser) return;
     const id = String(req.params.id || "").trim();
-    const reason = String(req.body?.reason ?? req.query?.reason ?? "").trim();
     if (!id) {
       return sendJsonError(res, 400, {
         code: "INVALID_INPUT",
@@ -3649,6 +3648,7 @@ app.delete("/reports/movements/:id", requireAuth, async (req, res) => {
         details: { id: id || null }
       });
     }
+    const reason = String(req.query?.reason ?? "").trim();
     const ref = db.collection("movements").doc(id);
     const snap = await ref.get();
     if (!snap.exists) {

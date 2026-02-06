@@ -270,9 +270,9 @@ export default function Reportes() {
       if (deleteTarget.kind === "payment") {
         await api.post(`/payments/${deleteTarget.id}/void`, { reason: deleteReason || "" });
       } else {
-        await api.delete(`/reports/movements/${deleteTarget.id}`, {
-          data: { reason: deleteReason || "" }
-        });
+        const reason = deleteReason.trim();
+        const config = reason ? { params: { reason } } : undefined;
+        await api.delete(`/reports/movements/${deleteTarget.id}`, config);
       }
       handleCloseDelete();
       setRefreshKey((prev) => prev + 1);
