@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ========================= DEV ONLY =========================
+    // WARNING: This file is intentionally wide open for local
+    // emulator development. DO NOT deploy these rules to prod.
+    // TODO: Replace with real auth/role rules before any deploy.
+    // ============================================================
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
