@@ -1,0 +1,172 @@
+[debug] [2026-02-06T03:28:29.497Z] ----------------------------------------------------------------------
+[debug] [2026-02-06T03:28:29.501Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --only functions
+[debug] [2026-02-06T03:28:29.502Z] CLI Version:   15.5.1
+[debug] [2026-02-06T03:28:29.502Z] Platform:      win32
+[debug] [2026-02-06T03:28:29.502Z] Node Version:  v24.13.0
+[debug] [2026-02-06T03:28:29.502Z] Time:          Fri Feb 06 2026 00:28:29 GMT-0300 (hora estándar de Argentina)
+[debug] [2026-02-06T03:28:29.502Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-06T03:28:33.077Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-06T03:28:33.077Z] > authorizing via signed-in user (maronexequielvalla@gmail.com)
+[info] i  emulators: Starting emulators: functions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: functions"}}
+[debug] [2026-02-06T03:28:33.101Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:28:33.101Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-02-06T03:28:33.108Z] Write emulator hub locator at C:\Users\exequ\AppData\Local\Temp\hub-financiera-95144.json
+[debug] [2026-02-06T03:28:33.116Z] Error: EPERM: operation not permitted, open 'C:\Users\exequ\.config\configstore\firebase-tools.json.3771351077'
+    at Object.openSync (node:fs:559:18)
+    at writeFile.writeFileSync [as sync] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\write-file-atomic\index.js:205:13)
+    at set all (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:61:20)
+    at Configstore.set (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:91:12)
+    at session (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:181:39)
+    at emulatorSession (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:160:12)
+    at trackEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:72:21)
+    at Command.<anonymous> (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:101:48)
+    at Command.listener [as _actionHandler] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\commander\index.js:413:31)
+    at Command._parseCommand (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\commander\index.js:914:14)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-02-06T03:28:33.118Z] Error: EPERM: operation not permitted, open 'C:\Users\exequ\.config\configstore\firebase-tools.json.2957600788'
+    at Object.openSync (node:fs:559:18)
+    at writeFile.writeFileSync [as sync] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\write-file-atomic\index.js:205:13)
+    at set all (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:61:20)
+    at Configstore.set (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:91:12)
+    at session (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:181:39)
+    at emulatorSession (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:160:12)
+    at trackEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:72:21)
+    at startEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\controller.js:290:40)
+    at Object.startAll (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\controller.js:302:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-02-06T03:28:33.135Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:28:33.136Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:28:33.136Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:28:33.136Z] late-assigned ports for functions and eventarc emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect"}}
+[debug] [2026-02-06T03:28:33.175Z] Error: EPERM: operation not permitted, open 'C:\Users\exequ\.config\configstore\firebase-tools.json.3914778461'
+    at Object.openSync (node:fs:559:18)
+    at writeFile.writeFileSync [as sync] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\write-file-atomic\index.js:205:13)
+    at set all (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:61:20)
+    at Configstore.set (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:91:12)
+    at session (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:181:39)
+    at emulatorSession (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:160:12)
+    at trackEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:72:21)
+    at startEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\controller.js:290:40)
+    at Object.startAll (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\controller.js:404:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-02-06T03:28:33.184Z] defaultcredentials: writing to file C:\Users\exequ\AppData\Roaming\firebase\maronexequielvalla_gmail_com_application_default_credentials.json
+[debug] [2026-02-06T03:28:33.203Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] i  emulators: Shutting down emulators. {"metadata":{"emulator":{"name":"hub"},"message":"Shutting down emulators."}}
+[info] i  functions: Stopping Functions Emulator {"metadata":{"emulator":{"name":"functions"},"message":"Stopping Functions Emulator"}}
+[info] i  hub: Stopping emulator hub {"metadata":{"emulator":{"name":"hub"},"message":"Stopping emulator hub"}}
+[debug] [2026-02-06T03:28:33.210Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[debug] [2026-02-06T03:28:33.257Z] Error: EPERM: operation not permitted, open 'C:\Users\exequ\.config\configstore\firebase-tools.json.3800527206'
+    at Object.openSync (node:fs:559:18)
+    at writeFile.writeFileSync [as sync] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\write-file-atomic\index.js:205:13)
+    at set all (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:61:20)
+    at Configstore.set (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:91:12)
+    at session (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:181:39)
+    at emulatorSession (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:160:12)
+    at trackEmulator (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\track.js:72:21)
+    at C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:150:53
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-02-06T03:28:33.411Z] Error: EPERM: operation not permitted, open 'C:\Users\exequ\.config\configstore\firebase-tools.json.1462574327'
+    at Object.openSync (node:fs:559:18)
+    at writeFile.writeFileSync [as sync] (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\write-file-atomic\index.js:205:13)
+    at set all (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:61:20)
+    at Configstore.delete (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\configstore\index.js:101:12)
+    at process.<anonymous> (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\cli.js:65:45)
+    at process.emit (node:events:520:35)
+    at process.exit (node:internal/process/per_thread:236:15)
+    at Timeout._onTimeout (C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\errorOut.js:20:17)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[debug] [2026-02-06T03:30:18.193Z] ----------------------------------------------------------------------
+[debug] [2026-02-06T03:30:18.201Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\exequ\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --only functions --debug
+[debug] [2026-02-06T03:30:18.201Z] CLI Version:   15.5.1
+[debug] [2026-02-06T03:30:18.201Z] Platform:      win32
+[debug] [2026-02-06T03:30:18.201Z] Node Version:  v24.13.0
+[debug] [2026-02-06T03:30:18.201Z] Time:          Fri Feb 06 2026 00:30:18 GMT-0300 (hora estándar de Argentina)
+[debug] [2026-02-06T03:30:18.201Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-06T03:30:19.619Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-06T03:30:19.620Z] > authorizing via signed-in user (maronexequielvalla@gmail.com)
+[info] i  emulators: Starting emulators: functions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: functions"}}
+[debug] [2026-02-06T03:30:19.631Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:30:19.631Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-02-06T03:30:19.636Z] Found emulator hub locator: {"version":"15.5.1","origins":["http://127.0.0.1:4400","http://[::1]:4400"],"pid":27888}
+[debug] [2026-02-06T03:30:19.637Z] Write emulator hub locator at C:\Users\exequ\AppData\Local\Temp\hub-financiera-95144.json
+[debug] [2026-02-06T03:30:19.650Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:30:19.650Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:30:19.651Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-02-06T03:30:19.651Z] late-assigned ports for functions and eventarc emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect\u001b[22m"}}
+[debug] [2026-02-06T03:30:19.704Z] defaultcredentials: writing to file C:\Users\exequ\AppData\Roaming\firebase\maronexequielvalla_gmail_com_application_default_credentials.json
+[debug] [2026-02-06T03:30:19.707Z] Setting GAC to C:\Users\exequ\AppData\Roaming\firebase\maronexequielvalla_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\exequ\\AppData\\Roaming\\firebase\\maronexequielvalla_gmail_com_application_default_credentials.json"}}
+[debug] [2026-02-06T03:30:19.709Z] Checked if tokens are valid: false, expires at: 1770344127979
+[debug] [2026-02-06T03:30:19.709Z] Checked if tokens are valid: false, expires at: 1770344127979
+[debug] [2026-02-06T03:30:19.709Z] > refreshing access token with scopes: []
+[debug] [2026-02-06T03:30:19.711Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-06T03:30:19.711Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-06T03:30:20.033Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-06T03:30:20.033Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-06T03:30:20.039Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/financiera-95144/adminSdkConfig [none]
+[debug] [2026-02-06T03:30:20.475Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/financiera-95144/adminSdkConfig 200
+[debug] [2026-02-06T03:30:20.475Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/financiera-95144/adminSdkConfig {"projectId":"financiera-95144","storageBucket":"financiera-95144.firebasestorage.app"}
+[info] i  functions: Watching "C:\Users\exequ\Desktop\financiera\functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"C:\\Users\\exequ\\Desktop\\financiera\\functions\" for Cloud Functions..."}}
+[debug] [2026-02-06T03:30:20.496Z] Validating nodejs source
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-02-06T03:30:21.839Z] > [functions] package.json contents: {
+  "name": "functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "echo \"No lint configured\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^4.5.0"
+  }
+}
+[debug] [2026-02-06T03:30:21.839Z] Building nodejs source
+[debug] [2026-02-06T03:30:21.839Z] Failed to find version of module node: reached end of search path C:\Users\exequ\Desktop\financiera\functions\node_modules
+[warn] !  functions: Your requested "node" version "20" doesn't match your global version "24". Using node@24 from host. 
+[info] i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2026-02-06T03:30:21.842Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-02-06T03:30:21.846Z] Found firebase-functions binary at 'C:\Users\exequ\Desktop\financiera\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8977
+
+[debug] [2026-02-06T03:30:22.513Z] Got response from /__/functions.yaml {"endpoints":{"api":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"httpsTrigger":{},"entryPoint":"api"},"health":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"httpsTrigger":{},"entryPoint":"health"},"bootstrapAdmin":{"platform":"gcfv1","labels":{},"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"region":["us-central1"],"callableTrigger":{},"entryPoint":"bootstrapAdmin"},"createLoan":{"platform":"gcfv1","labels":{},"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"callableTrigger":{},"entryPoint":"createLoan"},"addPayment":{"platform":"gcfv1","labels":{},"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"callableTrigger":{},"entryPoint":"addPayment"},"onCustomerCreate":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"eventTrigger":{"eventType":"providers/cloud.firestore/eventTypes/document.create","eventFilters":{"resource":"projects/financiera-95144/databases/(default)/documents/customers/{customerId}"},"retry":false},"labels":{},"entryPoint":"onCustomerCreate"}},"specVersion":"v1alpha1","requiredAPIs":[]}
+[info] +  functions: Loaded functions definitions from source: api, health, bootstrapAdmin, createLoan, addPayment, onCustomerCreate. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: api, health, bootstrapAdmin, createLoan, addPayment, onCustomerCreate."}}
+[info] +  functions[us-central1-api]: http function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/api). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/api)."}}
+[info] +  functions[us-central1-health]: http function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/health). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/health)."}}
+[info] +  functions[us-central1-bootstrapAdmin]: http function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/bootstrapAdmin). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/bootstrapAdmin)."}}
+[info] +  functions[us-central1-createLoan]: http function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/createLoan). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/createLoan)."}}
+[info] +  functions[us-central1-addPayment]: http function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/addPayment). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/financiera-95144/us-central1/addPayment)."}}
+[info] i  functions[us-central1-onCustomerCreate]: function ignored because the firestore emulator does not exist or is not running. {"metadata":{"emulator":{"name":"functions"},"message":"function ignored because the firestore emulator does not exist or is not running."}}
+[debug] [2026-02-06T03:30:26.547Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4000/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌───────────┬────────────────┬─────────────────────────────────┐
+│ Emulator  │ Host:Port      │ View in Emulator UI             │
+├───────────┼────────────────┼─────────────────────────────────┤
+│ Functions │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions │
+└───────────┴────────────────┴─────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 

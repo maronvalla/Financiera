@@ -432,30 +432,14 @@ function sendJsonError(res, status, { code, message, details }) {
   });
 }
 
-const ADMIN_ALLOWLIST = new Set([
-  "maronexequielvalla@gmail.com",
-  "cpmaron@gmail.com"
-]);
-const adminCache = new Map();
-
 async function isAdmin(req) {
   const uid = req.user?.uid || null;
-  const email = String(req.user?.email || "").trim().toLowerCase();
   if (!uid) return { admin: false, source: "no-uid" };
-  if (req.user?.admin === true) return { admin: true, source: "claim" };
-  if (email && ADMIN_ALLOWLIST.has(email)) return { admin: true, source: "allowlist" };
-
-  const cached = adminCache.get(uid);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) {
-    return { admin: cached.admin === true, source: "cache" };
-  }
-
   const userSnap = await db.collection("users").doc(uid).get();
   const user = userSnap.exists ? userSnap.data() || {} : {};
-  const admin = user.role === "admin";
-  adminCache.set(uid, { admin, expiresAt: now + 60 * 1000 });
-  return { admin, source: "users" };
+  const role = String(user.role || "").toLowerCase();
+  const admin = role === "admin";
+  return { admin, source: "users", role };
 }
 
 async function requireAdmin(req, res) {
@@ -468,7 +452,7 @@ async function requireAdmin(req, res) {
   const email = req.user?.email || null;
   console.log("[ADMIN_CHECK]", { uid, email, admin, source });
   if (!admin) {
-    res.status(403).json({ ok: false, code: "FORBIDDEN", message: "No tenés permisos para esta acción" });
+    res.status(403).json({ ok: false, code: "FORBIDDEN", message: "No ten?s permisos para esta acci?n" });
     return null;
   }
   return { uid, role: "admin", email, source };
@@ -597,7 +581,7 @@ function ensureLoanInstallments(loan) {
     return {
       installments: null,
       needsUpdate: false,
-      error: "Plan de cuotas no disponible para Préstamos americanos."
+      error: "Plan de cuotas no disponible para Pr?stamos americanos."
     };
   }
   const termCount = toNumber(loan.termCount);
@@ -802,7 +786,7 @@ async function registerInstallmentPayment({
   await db.runTransaction(async (tx) => {
     const loanSnap = await tx.get(loanRef);
     if (!loanSnap.exists) {
-      const error = new Error("Préstamo no existe.");
+      const error = new Error("Pr?stamo no existe.");
       error.status = 404;
       throw error;
     }
@@ -810,7 +794,7 @@ async function registerInstallmentPayment({
     const loan = loanSnap.data() || {};
     const fundingStatus = String(loan?.funding?.status || "").toUpperCase();
     if (fundingStatus === "PENDING") {
-      const err = new Error("El préstamo está pendiente de aprobación.");
+      const err = new Error("El pr?stamo est? pendiente de aprobaci?n.");
       err.status = 400;
       throw err;
     }
@@ -839,7 +823,7 @@ async function registerInstallmentPayment({
     }
 
     if (installmentIndex < 0) {
-      const err = new Error("Cuota inválida.");
+      const err = new Error("Cuota inv?lida.");
       err.status = 400;
       throw err;
     }
@@ -1108,7 +1092,7 @@ async function registerAmericanPayment({
   await db.runTransaction(async (tx) => {
     const loanSnap = await tx.get(loanRef);
     if (!loanSnap.exists) {
-      const error = new Error("Préstamo no existe.");
+      const error = new Error("Pr?stamo no existe.");
       error.status = 404;
       throw error;
     }
@@ -1116,13 +1100,13 @@ async function registerAmericanPayment({
     const loan = loanSnap.data() || {};
     const fundingStatus = String(loan?.funding?.status || "").toUpperCase();
     if (fundingStatus === "PENDING") {
-      const err = new Error("El préstamo está pendiente de aprobación.");
+      const err = new Error("El pr?stamo est? pendiente de aprobaci?n.");
       err.status = 400;
       throw err;
     }
     const loanType = normalizeLoanType(loan.loanType);
     if (loanType !== "americano") {
-      const error = new Error("El Préstamo no es americano.");
+      const error = new Error("El Pr?stamo no es americano.");
       error.status = 400;
       throw error;
     }
@@ -1573,7 +1557,7 @@ app.put("/customers/:id", requireAuth, async (req, res) => {
     if (!name || name.length < 2 || !dni || dni.length < 6 || dni.length > 12) {
       return sendJsonError(res, 400, {
         code: "INVALID_INPUT",
-        message: "Nombre o DNI inválido."
+        message: "Nombre o DNI inv?lido."
       });
     }
 
@@ -1587,14 +1571,14 @@ app.put("/customers/:id", requireAuth, async (req, res) => {
     if (!existingByField.empty && existingByField.docs[0].id !== customerId) {
       return sendJsonError(res, 400, {
         code: "DNI_EXISTS",
-        message: "Ese DNI ya está registrado."
+        message: "Ese DNI ya est? registrado."
       });
     }
     const legacySnap = await db.collection("customers").doc(dni).get();
     if (legacySnap.exists && legacySnap.id !== customerId) {
       return sendJsonError(res, 400, {
         code: "DNI_EXISTS",
-        message: "Ese DNI ya está registrado."
+        message: "Ese DNI ya est? registrado."
       });
     }
 
@@ -1636,7 +1620,7 @@ app.delete("/customers/:id", requireAuth, async (req, res) => {
     if (hasActiveLoans) {
       return sendJsonError(res, 400, {
         code: "HAS_ACTIVE_LOANS",
-        message: "El cliente tiene préstamos activos."
+        message: "El cliente tiene pr?stamos activos."
       });
     }
     await customerRef.set(
@@ -1745,7 +1729,7 @@ app.get("/loans", requireAuth, async (req, res) => {
     console.error("[LOANS_GET_FAILED]", err);
     console.error("query:", req.query);
     return res.status(500).json({
-      message: "Error al obtener Préstamos",
+      message: "Error al obtener Pr?stamos",
       code: "LOANS_GET_FAILED"
     });
   }
@@ -1791,7 +1775,7 @@ app.get("/loans/by-status", requireAuth, async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error("[LOANS_BY_STATUS_FAILED]", error);
-    return res.status(500).json({ message: "No se pudieron cargar los Préstamos." });
+    return res.status(500).json({ message: "No se pudieron cargar los Pr?stamos." });
   }
 });
 
@@ -1805,13 +1789,13 @@ app.post("/loans/:id/mark-bad-debt", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(loanRef);
       if (!snap.exists) {
-        const error = new Error("Préstamo no encontrado.");
+        const error = new Error("Pr?stamo no encontrado.");
         error.status = 404;
         throw error;
       }
       const loan = snap.data() || {};
       if (loan.voided) {
-        const error = new Error("El Préstamo ya está anulado.");
+        const error = new Error("El Pr?stamo ya est? anulado.");
         error.status = 400;
         throw error;
       }
@@ -1970,7 +1954,7 @@ app.post("/loans", requireAuth, async (req, res) => {
         myPct < 0 ||
         Math.abs(intermediaryPct + myPct - computedTotal) > 0.01
       ) {
-        return res.status(400).json({ message: "El split de interés es inválido." });
+        return res.status(400).json({ message: "El split de inter?s es inv?lido." });
       }
       interestSplit = {
         totalPct: computedTotal,
@@ -2128,7 +2112,7 @@ app.post("/loans", requireAuth, async (req, res) => {
 
     const fundingWallet = await getWalletData(tx, funding.sourceUid, funding.sourceEmail);
     if (fundingWallet.balance < disbursedAmount) {
-      const err = new Error("Saldo insuficiente para financiar el préstamo.");
+      const err = new Error("Saldo insuficiente para financiar el pr?stamo.");
       err.status = 400;
       throw err;
     }
@@ -2239,7 +2223,7 @@ app.post("/loans/:id/approveFunding", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const loanSnap = await tx.get(loanRef);
       if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
+        const err = new Error("Pr?stamo no encontrado.");
         err.status = 404;
         throw err;
       }
@@ -2247,12 +2231,12 @@ app.post("/loans/:id/approveFunding", requireAuth, async (req, res) => {
       const funding = loan.funding || {};
       const fundingStatus = String(funding.status || "").toUpperCase();
       if (fundingStatus !== "PENDING") {
-        const err = new Error("El préstamo no está pendiente.");
+        const err = new Error("El pr?stamo no est? pendiente.");
         err.status = 400;
         throw err;
       }
       if (funding.sourceUid !== req.user?.uid) {
-        const err = new Error("No autorizado para aprobar este préstamo.");
+        const err = new Error("No autorizado para aprobar este pr?stamo.");
         err.status = 403;
         throw err;
       }
@@ -2350,7 +2334,7 @@ app.post("/loans/:id/rejectFunding", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const loanSnap = await tx.get(loanRef);
       if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
+        const err = new Error("Pr?stamo no encontrado.");
         err.status = 404;
         throw err;
       }
@@ -2358,12 +2342,12 @@ app.post("/loans/:id/rejectFunding", requireAuth, async (req, res) => {
       const funding = loan.funding || {};
       const fundingStatus = String(funding.status || "").toUpperCase();
       if (fundingStatus !== "PENDING") {
-        const err = new Error("El préstamo no está pendiente.");
+        const err = new Error("El pr?stamo no est? pendiente.");
         err.status = 400;
         throw err;
       }
       if (funding.sourceUid !== req.user?.uid) {
-        const err = new Error("No autorizado para rechazar este préstamo.");
+        const err = new Error("No autorizado para rechazar este pr?stamo.");
         err.status = 403;
         throw err;
       }
@@ -2410,14 +2394,14 @@ app.delete("/loans/:id", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const loanSnap = await tx.get(loanRef);
       if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
+        const err = new Error("Pr?stamo no encontrado.");
         err.status = 404;
         err.code = "NOT_FOUND";
         throw err;
       }
       const loan = loanSnap.data() || {};
       if (loan.voided) {
-        const err = new Error("El Préstamo ya estaba anulado.");
+        const err = new Error("El Pr?stamo ya estaba anulado.");
         err.status = 400;
         err.code = "ALREADY_VOIDED";
         throw err;
@@ -2429,7 +2413,7 @@ app.delete("/loans/:id", requireAuth, async (req, res) => {
         return !data.voided;
       });
       if (hasPayments) {
-        const err = new Error("No se puede anular: el Préstamo ya tiene pagos.");
+        const err = new Error("No se puede anular: el Pr?stamo ya tiene pagos.");
         err.status = 400;
         err.code = "HAS_PAYMENTS";
         throw err;
@@ -2441,7 +2425,7 @@ app.delete("/loans/:id", requireAuth, async (req, res) => {
         return !data.voided;
       });
       if (hasSubPayments) {
-        const err = new Error("No se puede anular: el Préstamo ya tiene pagos.");
+        const err = new Error("No se puede anular: el Pr?stamo ya tiene pagos.");
         err.status = 400;
         err.code = "HAS_PAYMENTS";
         throw err;
@@ -2483,10 +2467,10 @@ app.delete("/loans/:id", requireAuth, async (req, res) => {
     if (status !== 500) {
       return sendJsonError(res, status, {
         code: error.code || "LOAN_DELETE_FAILED",
-        message: error.message || "No se pudo anular el Préstamo."
+        message: error.message || "No se pudo anular el Pr?stamo."
       });
     }
-    return res.status(500).json({ message: error.message || "No se pudo anular el Préstamo." });
+    return res.status(500).json({ message: error.message || "No se pudo anular el Pr?stamo." });
   }
 });
 
@@ -2501,14 +2485,14 @@ app.post("/loans/:id/void", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const loanSnap = await tx.get(loanRef);
       if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
+        const err = new Error("Pr?stamo no encontrado.");
         err.status = 404;
         err.code = "NOT_FOUND";
         throw err;
       }
       const loan = loanSnap.data() || {};
       if (loan.voided) {
-        const err = new Error("El Préstamo ya estaba anulado.");
+        const err = new Error("El Pr?stamo ya estaba anulado.");
         err.status = 400;
         err.code = "ALREADY_VOIDED";
         throw err;
@@ -2520,7 +2504,7 @@ app.post("/loans/:id/void", requireAuth, async (req, res) => {
         return !data.voided;
       });
       if (hasPayments) {
-        const err = new Error("No se puede anular: el Préstamo ya tiene pagos.");
+        const err = new Error("No se puede anular: el Pr?stamo ya tiene pagos.");
         err.status = 400;
         err.code = "HAS_PAYMENTS";
         throw err;
@@ -2532,7 +2516,7 @@ app.post("/loans/:id/void", requireAuth, async (req, res) => {
         return !data.voided;
       });
       if (hasSubPayments) {
-        const err = new Error("No se puede anular: el Préstamo ya tiene pagos.");
+        const err = new Error("No se puede anular: el Pr?stamo ya tiene pagos.");
         err.status = 400;
         err.code = "HAS_PAYMENTS";
         throw err;
@@ -2586,10 +2570,10 @@ app.post("/loans/:id/void", requireAuth, async (req, res) => {
     if (status !== 500) {
       return sendJsonError(res, status, {
         code: error.code || "LOAN_VOID_FAILED",
-        message: error.message || "No se pudo anular el Préstamo."
+        message: error.message || "No se pudo anular el Pr?stamo."
       });
     }
-    return res.status(500).json({ message: error.message || "No se pudo anular el Préstamo." });
+    return res.status(500).json({ message: error.message || "No se pudo anular el Pr?stamo." });
   }
 });
 
@@ -2602,11 +2586,11 @@ app.post("/loans/:id/void-with-payments", requireAuth, async (req, res) => {
     const loanRef = db.collection("loans").doc(loanId);
     const loanSnap = await loanRef.get();
     if (!loanSnap.exists) {
-      return sendJsonError(res, 404, { code: "NOT_FOUND", message: "Préstamo no encontrado." });
+      return sendJsonError(res, 404, { code: "NOT_FOUND", message: "Pr?stamo no encontrado." });
     }
     const loan = loanSnap.data() || {};
     if (loan.voided) {
-      return sendJsonError(res, 400, { code: "ALREADY_VOIDED", message: "El Préstamo ya estaba anulado." });
+      return sendJsonError(res, 400, { code: "ALREADY_VOIDED", message: "El Pr?stamo ya estaba anulado." });
     }
 
     const paymentsSnap = await db.collection("payments").where("loanId", "==", loanId).get();
@@ -2772,7 +2756,7 @@ app.post("/loans/:id/void-with-payments", requireAuth, async (req, res) => {
           createdByEmail: payment.createdByEmail || null,
           loanId: loanRef.id,
           customerDni: loan.customerDni || loan.dni || loan.dniCliente || null,
-          note: `Anulación pago ${payment.id}`,
+          note: `Anulaci?n pago ${payment.id}`,
           source: "void"
         })
       );
@@ -2838,10 +2822,10 @@ app.post("/loans/:id/void-with-payments", requireAuth, async (req, res) => {
     if (status !== 500) {
       return sendJsonError(res, status, {
         code: error.code || "LOAN_VOID_WITH_PAYMENTS_FAILED",
-        message: error.message || "No se pudo anular el Préstamo."
+        message: error.message || "No se pudo anular el Pr?stamo."
       });
     }
-    return res.status(500).json({ message: error.message || "No se pudo anular el Préstamo." });
+    return res.status(500).json({ message: error.message || "No se pudo anular el Pr?stamo." });
   }
 });
 
@@ -2853,12 +2837,12 @@ app.get("/loans/:id/installments", requireAuth, async (req, res) => {
     const loanRef = db.collection("loans").doc(loanId);
     const loanSnap = await loanRef.get();
     if (!loanSnap.exists) {
-      return res.status(404).json({ message: "Préstamo no encontrado." });
+      return res.status(404).json({ message: "Pr?stamo no encontrado." });
     }
 
     const loan = loanSnap.data() || {};
     if (normalizeLoanType(loan.loanType) === "americano") {
-      return res.status(400).json({ message: "El Préstamo no tiene plan de cuotas." });
+      return res.status(400).json({ message: "El Pr?stamo no tiene plan de cuotas." });
     }
     const { installments, needsUpdate, error } = ensureLoanInstallments(loan);
     if (!installments) {
@@ -2906,12 +2890,12 @@ app.post("/payments", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "paidAt es requerido (YYYY-MM-DD)." });
     }
     if (!paidAt) {
-      return res.status(400).json({ message: "Fecha de pago inválida." });
+      return res.status(400).json({ message: "Fecha de pago inv?lida." });
     }
 
     const loanSnap = await db.collection("loans").doc(loanId).get();
     if (!loanSnap.exists) {
-      return res.status(404).json({ message: "Préstamo no encontrado." });
+      return res.status(404).json({ message: "Pr?stamo no encontrado." });
     }
     const loan = loanSnap.data() || {};
     const loanType = normalizeLoanType(loan.loanType);
@@ -2928,7 +2912,7 @@ app.post("/payments", requireAuth, async (req, res) => {
       }
       if (interestPaid < 0 || principalPaid < 0 || totalPaid <= 0) {
         return res.status(400).json({
-          message: "Monto inválido. Debe informar interés, capital o ambos."
+          message: "Monto inv?lido. Debe informar inter?s, capital o ambos."
         });
       }
 
@@ -2960,10 +2944,10 @@ app.post("/payments", requireAuth, async (req, res) => {
       amount = roundMoney(fallbackInterest + fallbackPrincipal);
     }
     if (amount <= 0) {
-      return res.status(400).json({ message: "Monto inválido." });
+      return res.status(400).json({ message: "Monto inv?lido." });
     }
     if (!installmentNumber || installmentNumber <= 0) {
-      return res.status(400).json({ message: "Cuota inválida." });
+      return res.status(400).json({ message: "Cuota inv?lida." });
     }
 
     const result = await registerInstallmentPayment({
@@ -3008,7 +2992,7 @@ app.post("/loans/:id/payments", requireAuth, async (req, res) => {
 
     const loanSnap = await db.collection("loans").doc(loanId).get();
     if (!loanSnap.exists) {
-      return res.status(404).json({ message: "Préstamo no encontrado." });
+      return res.status(404).json({ message: "Pr?stamo no encontrado." });
     }
     const loan = loanSnap.data() || {};
     const loanType = normalizeLoanType(loan.loanType);
@@ -3090,7 +3074,7 @@ app.get("/loans/debug/sample", requireAuth, async (req, res) => {
     });
     return res.json({ items });
   } catch (error) {
-    return res.status(500).json({ message: "Error al obtener muestra de Préstamos." });
+    return res.status(500).json({ message: "Error al obtener muestra de Pr?stamos." });
   }
 });
 
@@ -3120,7 +3104,7 @@ app.get("/loans/debug/by-dni", requireAuth, async (req, res) => {
 
     return res.json({ count: items.length, items });
   } catch (error) {
-    return res.status(500).json({ message: "Error al depurar Préstamos." });
+    return res.status(500).json({ message: "Error al depurar Pr?stamos." });
   }
 });
 
@@ -3213,7 +3197,7 @@ app.get("/loans/active-by-dni", requireAuth, async (req, res) => {
     return res.json({ items });
   } catch (error) {
     console.error("[active-by-dni] error", error);
-    return res.status(500).json({ message: "Error al buscar Préstamos activos." });
+    return res.status(500).json({ message: "Error al buscar Pr?stamos activos." });
   }
 });
 
@@ -3221,18 +3205,17 @@ async function handleReportsList(req, res) {
   try {
     const type = normalizeText(req.query.type || "all");
     const term = normalizeText(req.query.q || req.query.query || "");
+    const limitRaw = toNumber(req.query.limit);
+    const limit = Math.min(Math.max(limitRaw || 100, 1), 200);
 
-    const snap = await db.collection("movements").get();
+    const snap = await db
+      .collection("movements")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
     let items = snap.docs
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-            .filter((item) => !item.voided && !item.deletedAt);
-    items.sort((a, b) => {
-      const dateA = toDateValue(a.createdAt) || toDateValue(a.occurredAt) || toDateValue(a.timestamp);
-      const dateB = toDateValue(b.createdAt) || toDateValue(b.occurredAt) || toDateValue(b.timestamp);
-      const timeA = dateA ? dateA.getTime() : 0;
-      const timeB = dateB ? dateB.getTime() : 0;
-      return timeB - timeA;
-    });
+      .filter((item) => !item.voided && !item.deletedAt);
 
     if (term) {
       items = items.filter((item) => {
@@ -3282,20 +3265,18 @@ async function handleReportsApi(req, res) {
       return res.status(400).json({ error: "TYPE_REQUIRED" });
     }
     const type = normalizeText(rawType);
-    const year = String(req.query.year || "").trim();
     const term = normalizeText(req.query.q || "");
+    const limitRaw = toNumber(req.query.limit);
+    const limit = Math.min(Math.max(limitRaw || 100, 1), 200);
 
-    const snap = await db.collection("movements").get();
+    const snap = await db
+      .collection("movements")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
     let items = snap.docs
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
       .filter((item) => !item.voided && !item.deletedAt);
-    items.sort((a, b) => {
-      const dateA = toDateValue(a.createdAt) || toDateValue(a.occurredAt) || toDateValue(a.timestamp);
-      const dateB = toDateValue(b.createdAt) || toDateValue(b.occurredAt) || toDateValue(b.timestamp);
-      const timeA = dateA ? dateA.getTime() : 0;
-      const timeB = dateB ? dateB.getTime() : 0;
-      return timeB - timeA;
-    });
 
     if (term) {
       items = items.filter((item) => {
@@ -3330,8 +3311,6 @@ async function handleReportsApi(req, res) {
         relatedId: item.relatedId || null
       }))
     });
-
-    return res.status(400).json({ error: "TYPE_INVALID" });
   } catch (error) {
     console.error("[REPORTS]", error);
     return res.status(500).json({ error: "REPORTS_FAILED" });
@@ -3352,7 +3331,7 @@ async function handleReportsDelete(req, res) {
     if (!id || (kind !== "loan" && kind !== "payment")) {
       return sendJsonError(res, 400, {
         code: "INVALID_INPUT",
-        message: "Parámetros inválidos."
+        message: "Par?metros inv?lidos."
       });
     }
 
@@ -3361,14 +3340,14 @@ async function handleReportsDelete(req, res) {
       await db.runTransaction(async (tx) => {
         const loanSnap = await tx.get(loanRef);
         if (!loanSnap.exists) {
-          const error = new Error("Préstamo no encontrado.");
+          const error = new Error("Pr?stamo no encontrado.");
           error.status = 404;
           error.code = "NOT_FOUND";
           throw error;
         }
         const loan = loanSnap.data() || {};
         if (loan.voided) {
-          const error = new Error("El Préstamo ya estaba anulado.");
+          const error = new Error("El Pr?stamo ya estaba anulado.");
           error.status = 400;
           error.code = "ALREADY_VOIDED";
           throw error;
@@ -3380,7 +3359,7 @@ async function handleReportsDelete(req, res) {
           return !data.voided;
         });
         if (hasPayments) {
-          const error = new Error("El Préstamo tiene pagos registrados.");
+          const error = new Error("El Pr?stamo tiene pagos registrados.");
           error.status = 400;
           error.code = "HAS_PAYMENTS";
           throw error;
@@ -3429,7 +3408,7 @@ async function handleReportsDelete(req, res) {
       }
       const loanId = payment.loanId;
       if (!loanId) {
-        const error = new Error("Pago sin referencia de Préstamo.");
+        const error = new Error("Pago sin referencia de Pr?stamo.");
         error.status = 400;
         error.code = "LOAN_REQUIRED";
         throw error;
@@ -3438,7 +3417,7 @@ async function handleReportsDelete(req, res) {
       const loanRef = db.collection("loans").doc(loanId);
       const loanSnap = await tx.get(loanRef);
       if (!loanSnap.exists) {
-        const error = new Error("Préstamo no encontrado.");
+        const error = new Error("Pr?stamo no encontrado.");
         error.status = 404;
         error.code = "NOT_FOUND";
         throw error;
@@ -3582,7 +3561,7 @@ async function handleReportsDelete(req, res) {
           createdByEmail: payment.createdByEmail || null,
           loanId: loanRef.id,
           customerDni: loan.customerDni || loan.dni || loan.dniCliente || null,
-          note: `Anulación pago ${paymentRef.id}`,
+          note: `Anulaci?n pago ${paymentRef.id}`,
           source: "void"
         })
       );
@@ -3702,37 +3681,14 @@ app.get("/profits/monthly", requireAuth, async (req, res) => {
   try {
     const year = String(req.query.year || "").trim();
     if (!/^\d{4}$/.test(year)) {
-      return sendJsonError(res, 400, { code: "INVALID_YEAR", message: "Año inválido." });
+      return sendJsonError(res, 400, { code: "INVALID_YEAR", message: "A?o inv?lido." });
     }
     const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
-    const summary = new Map();
-    months.forEach((month) => {
-      summary.set(month, { mineArs: 0, intermediaryArs: 0, interestTotalArs: 0 });
-    });
-
-    const snap = await db.collection("payments").get();
-    snap.docs.forEach((docSnap) => {
-      const data = docSnap.data() || {};
-      if (data.voided === true) return;
-      const paidAtDate = toDateValue(data.paidAt) || toDateValue(data.createdAt);
-      if (!paidAtDate) return;
-      const paidYear = String(paidAtDate.getUTCFullYear());
-      if (paidYear !== year) return;
-      const monthKey = formatMonthKey(paidAtDate);
-      if (!summary.has(monthKey)) return;
-      const interestTotal = Number((data.interestTotal ?? data.interestPaid) || 0);
-      const interestMine = Number((data.interestMine ?? data.interestPaid) || 0);
-      const interestIntermediary = Number(data.interestIntermediary || 0);
-      const current = summary.get(monthKey);
-      summary.set(monthKey, {
-        mineArs: Number(current.mineArs || 0) + interestMine,
-        intermediaryArs: Number(current.intermediaryArs || 0) + interestIntermediary,
-        interestTotalArs: Number(current.interestTotalArs || 0) + interestTotal
-      });
-    });
-
-    const items = months.map((month) => {
-      const data = summary.get(month) || { mineArs: 0, intermediaryArs: 0, interestTotalArs: 0 };
+    const snaps = await Promise.all(
+      months.map((month) => db.collection("profitMonthly").doc(month).get())
+    );
+    const items = months.map((month, idx) => {
+      const data = snaps[idx]?.exists ? snaps[idx].data() || {} : {};
       return {
         month,
         mineArs: Number(data.mineArs || 0),
@@ -3756,7 +3712,7 @@ app.post("/profits/rebuild", requireAuth, async (req, res) => {
     if (!adminUser) return;
     const year = String(req.query.year || "").trim();
     if (!/^\d{4}$/.test(year)) {
-      return sendJsonError(res, 400, { code: "INVALID_YEAR", message: "Año inválido." });
+      return sendJsonError(res, 400, { code: "INVALID_YEAR", message: "A?o inv?lido." });
     }
     const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
     const summary = new Map();
@@ -3816,7 +3772,7 @@ app.get("/profits/details", requireAuth, async (req, res) => {
   try {
     const month = String(req.query.month || "").trim();
     if (!/^\d{4}-\d{2}$/.test(month)) {
-      return sendJsonError(res, 400, { code: "INVALID_MONTH", message: "Mes inválido." });
+      return sendJsonError(res, 400, { code: "INVALID_MONTH", message: "Mes inv?lido." });
     }
     const snap = await db.collection("payments").where("paidMonth", "==", month).get();
     const items = snap.docs.map((docSnap) => {
@@ -4017,7 +3973,7 @@ app.post("/wallets/transfer", requireAuth, async (req, res) => {
   try {
     const amountARS = roundMoney(toNumber(req.body.amount ?? req.body.amountARS));
     if (!amountARS || amountARS <= 0) {
-      return res.status(400).json({ message: "Monto inválido." });
+      return res.status(400).json({ message: "Monto inv?lido." });
     }
     const fromUid = req.user?.uid || null;
     const fromEmail = normalizeEmailValue(req.user?.email || "Sin asignar");
@@ -4035,10 +3991,10 @@ app.post("/wallets/transfer", requireAuth, async (req, res) => {
       }
     }
     if (!toUid) {
-      return res.status(400).json({ message: "Destino inválido." });
+      return res.status(400).json({ message: "Destino inv?lido." });
     }
     if (toUid === fromUid) {
-      return res.status(400).json({ message: "No podés transferirte a vos mismo." });
+      return res.status(400).json({ message: "No pod?s transferirte a vos mismo." });
     }
 
     await ensureWalletExists(fromUid, fromEmail);
@@ -4119,7 +4075,7 @@ app.post("/wallets/migrate-history", requireAuth, async (req, res) => {
     const migrationRef = db.collection("migrations").doc("walletsHistory");
     const migrationSnap = await migrationRef.get();
     if (migrationSnap.exists && migrationSnap.data()?.done) {
-      return res.status(409).json({ message: "La migración ya fue ejecutada." });
+      return res.status(409).json({ message: "La migraci?n ya fue ejecutada." });
     }
 
     const cutoff = new Date();
@@ -4203,7 +4159,7 @@ app.post("/wallets/migrate-history", requireAuth, async (req, res) => {
           createdByUid: adminUser.uid,
           createdByEmail: normalizeEmailValue(req.user?.email || "Sin asignar"),
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          note: "Migración histórico previo a wallets"
+          note: "Migraci?n hist?rico previo a wallets"
         });
         const movementRef = db.collection("wallet_movements").doc();
         tx.set(movementRef, {
@@ -4213,7 +4169,7 @@ app.post("/wallets/migrate-history", requireAuth, async (req, res) => {
           createdByUid: adminUser.uid,
           createdByEmail: normalizeEmailValue(req.user?.email || "Sin asignar"),
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          note: "Migración histórico previo a wallets"
+          note: "Migraci?n hist?rico previo a wallets"
         });
       });
       updated += 1;
@@ -4230,7 +4186,7 @@ app.post("/wallets/migrate-history", requireAuth, async (req, res) => {
 
     return res.json({ ok: true, walletsUpdated: updated });
   } catch (error) {
-    return res.status(500).json({ message: error.message || "No se pudo ejecutar la migración." });
+    return res.status(500).json({ message: error.message || "No se pudo ejecutar la migraci?n." });
   }
 });
 
@@ -4297,12 +4253,135 @@ app.get("/treasury/summary", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/treasury/rebuild", requireAuth, async (req, res) => {
+  try {
+    const adminUser = await requireAdmin(req, res);
+    if (!adminUser) return;
+
+    const treasurySummaryRef = db.collection("treasurySummary").doc("primary");
+    const existingSummarySnap = await treasurySummaryRef.get();
+    const existingSummary = existingSummarySnap.exists ? existingSummarySnap.data() || {} : {};
+    const initialCash = Number(existingSummary.initialCash || 0);
+
+    const [paymentsSnap, loansSnap, treasuryUsersSnap] = await Promise.all([
+      db.collection("payments").get(),
+      db.collection("loans").get(),
+      db.collection("treasuryUsers").get()
+    ]);
+
+    let totalCollectedArs = 0;
+    const byUser = new Map();
+
+    paymentsSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (data.voided) return;
+      const amountBase = Number(data.amountPaid || data.amount || 0);
+      const amount =
+        amountBase > 0
+          ? amountBase
+          : Number(data.interestPaid || 0) + Number(data.principalPaid || 0);
+      totalCollectedArs += amount;
+      const uid = data.createdByUid || data.createdBy || "unknown";
+      const email = normalizeEmailValue(data.createdByEmail || "Sin asignar");
+      const current = byUser.get(uid) || { uid, email, paymentsCount: 0, collectedArs: 0 };
+      byUser.set(uid, {
+        uid,
+        email: current.email || email,
+        paymentsCount: current.paymentsCount + 1,
+        collectedArs: current.collectedArs + amount
+      });
+    });
+
+    let totalDisbursedArs = 0;
+    let totalLoanOutstandingArs = 0;
+    loansSnap.docs.forEach((docSnap) => {
+      const loan = docSnap.data() || {};
+      if (loan.voided) return;
+      if (normalizeLoanStatus(loan.status) === "void") return;
+      const disbursed = roundMoney(toNumber(loan.principalOriginal || loan.principal || 0));
+      totalDisbursedArs += disbursed;
+      const outstanding = getLoanOutstanding(loan);
+      if (outstanding > 0) {
+        totalLoanOutstandingArs += Number(outstanding);
+      }
+    });
+
+    const liquidArs = totalCollectedArs - totalDisbursedArs + initialCash;
+
+    let batch = db.batch();
+    let batchSize = 0;
+    const flushBatch = async () => {
+      if (batchSize === 0) return;
+      await batch.commit();
+      batch = db.batch();
+      batchSize = 0;
+    };
+
+    const knownUids = new Set(byUser.keys());
+    for (const docSnap of treasuryUsersSnap.docs) {
+      if (!knownUids.has(docSnap.id)) {
+        batch.delete(docSnap.ref);
+        batchSize += 1;
+        if (batchSize >= 400) {
+          await flushBatch();
+        }
+      }
+    }
+
+    for (const [uid, entry] of byUser.entries()) {
+      const ref = db.collection("treasuryUsers").doc(uid);
+      batch.set(
+        ref,
+        {
+          email: entry.email || "Sin asignar",
+          paymentsCount: Number(entry.paymentsCount || 0),
+          collectedArs: roundMoney(Number(entry.collectedArs || 0)),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        },
+        { merge: true }
+      );
+      batchSize += 1;
+      if (batchSize >= 400) {
+        await flushBatch();
+      }
+    }
+
+    await flushBatch();
+    await treasurySummaryRef.set(
+      {
+        totalCollectedArs: roundMoney(totalCollectedArs),
+        totalDisbursedArs: roundMoney(totalDisbursedArs),
+        totalLoanOutstandingArs: roundMoney(totalLoanOutstandingArs),
+        liquidArs: roundMoney(liquidArs),
+        initialCash,
+        rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+
+    functions.logger.info("[TREASURY_REBUILD]", {
+      totalCollectedArs,
+      totalDisbursedArs,
+      totalLoanOutstandingArs
+    });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    return sendJsonError(res, 500, {
+      code: "TREASURY_REBUILD_FAILED",
+      message: "No se pudo reconstruir el resumen.",
+      details: error.message || null
+    });
+  }
+});
+
 app.get("/treasury", requireAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const year = String(req.query.year || "").trim() || String(new Date().getUTCFullYear());
     if (!/^\d{4}$/.test(year)) {
-      return res.status(400).json({ message: "Año inválido." });
+      return res.status(400).json({ message: "A?o inv?lido." });
     }
     const collectionName = "ledger";
     console.log("[TREASURY] using collection:", collectionName);
@@ -4383,69 +4462,38 @@ app.get("/treasury", requireAuth, async (req, res) => {
 
 app.get("/reports/kpis", requireAuth, async (req, res) => {
   try {
-    const loansSnap = await db.collection("loans").get();
-    const loans = loansSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    res.set("Cache-Control", "no-store");
+    const [treasurySnap, loansSnap, profitSnap] = await Promise.all([
+      db.collection("treasurySummary").doc("primary").get(),
+      db.collection("loans").where("balance", ">", 0).get(),
+      db.collection("profitMonthly").doc(formatMonthKey(new Date())).get()
+    ]);
 
-    const activeDebtors = new Set(
-      loans
-      .filter((loan) => {
-        const outstanding = getLoanOutstanding(loan);
-        return normalizeLoanStatus(loan.status) === "active" && outstanding > 0;
-      })
-        .map((loan) => loan.customerDni)
-        .filter(Boolean)
-    );
+    const treasury = treasurySnap.exists ? treasurySnap.data() || {} : {};
+    const collectedTotal = Number(treasury.totalCollectedArs || 0);
+    const profitData = profitSnap.exists ? profitSnap.data() || {} : {};
+    const interestMonth = Number(profitData.mineArs || 0);
 
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-    const monthEnd = new Date(monthStart);
-    monthEnd.setMonth(monthEnd.getMonth() + 1);
+    const activeDebtors = new Set();
+    loansSnap.docs.forEach((docSnap) => {
+      const loan = docSnap.data() || {};
+      if (loan.voided) return;
+      const outstanding = getLoanOutstanding(loan);
+      if (outstanding <= 0) return;
+      if (normalizeLoanStatus(loan.status) !== "active") return;
+      if (loan.customerDni) activeDebtors.add(String(loan.customerDni));
+    });
 
-    let collectedTotal = 0;
-    let interestMonth = 0;
-
-    for (const loan of loans) {
-      const paymentsSnap = await db.collection("loans").doc(loan.id).collection("payments").get();
-      const loanType = normalizeLoanType(loan.loanType);
-      const interestTotal = Number(loan.totalDue || 0) - Number(loan.principal || 0);
-      const interestRatio =
-        Number(loan.totalDue || 0) > 0 ? interestTotal / Number(loan.totalDue) : 0;
-
-      paymentsSnap.docs.forEach((docSnap) => {
-        const payment = docSnap.data();
-        const amountBase = Number(payment.amount || 0);
-        const interestValue = Number(payment.interestPaid || 0);
-        const principalValue = Number(payment.principalPaid || 0);
-        const amount = amountBase > 0 ? amountBase : interestValue + principalValue;
-        collectedTotal += amount;
-
-        const paidAt = toDateValue(payment.paidAt) || toDateValue(payment.createdAt);
-        if (paidAt && paidAt >= monthStart && paidAt < monthEnd) {
-          let interestTotalPaid = 0;
-          if (loanType === "americano") {
-            interestTotalPaid = Number((payment.interestTotal ?? payment.interestPaid) || 0);
-          } else {
-            interestTotalPaid =
-              payment.interestTotal != null
-                ? Number(payment.interestTotal || 0)
-                : payment.interestPaid != null
-                  ? Number(payment.interestPaid || 0)
-                  : amount * interestRatio;
-          }
-          const interestMine =
-            payment.interestMine != null
-              ? Number(payment.interestMine || 0)
-              : computeInterestSplit(loan, interestTotalPaid).interestMine;
-          interestMonth += interestMine;
-        }
-      });
-    }
+    functions.logger.info("[REPORTS_KPIS]", {
+      debtors: activeDebtors.size
+    });
 
     return res.json({
-      totalRecaudado: collectedTotal,
-      clientesDeudores: activeDebtors.size,
-      interesMesActual: interestMonth
+      item: {
+        collectedTotal,
+        debtorsCount: activeDebtors.size,
+        interestMonth
+      }
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || "No se pudieron cargar los KPIs." });
@@ -4460,43 +4508,16 @@ app.get("/reports/monthly", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "INVALID_YEAR" });
     }
     const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
-    const summary = new Map();
-    months.forEach((month) => {
-      summary.set(month, { totalInteres: 0, miGanancia: 0, intermediarios: 0 });
-    });
-
-    const paymentsSnap = await db.collectionGroup("payments").get();
-    paymentsSnap.docs.forEach((docSnap) => {
-      const data = docSnap.data() || {};
-      if (data.voided) return;
-      const paidAtDate =
-        toDateValue(data.paidAt) ||
-        toDateValue(data.paymentDate) ||
-        toDateValue(data.date) ||
-        toDateValue(data.createdAt);
-      if (!paidAtDate) return;
-      const paidYear = String(paidAtDate.getUTCFullYear());
-      if (paidYear !== year) return;
-      const monthKey = formatMonthKey(paidAtDate);
-      if (!summary.has(monthKey)) return;
-      const interestTotal = Number((data.interestTotal ?? data.interestPaid) || 0);
-      const interestMine = Number((data.interestMine ?? data.interestPaid) || 0);
-      const interestIntermediary = Number(data.interestIntermediary || 0);
-      const current = summary.get(monthKey);
-      summary.set(monthKey, {
-        totalInteres: current.totalInteres + interestTotal,
-        miGanancia: current.miGanancia + interestMine,
-        intermediarios: current.intermediarios + interestIntermediary
-      });
-    });
-
-    const items = months.map((month) => {
-      const data = summary.get(month) || { totalInteres: 0, miGanancia: 0, intermediarios: 0 };
+    const snaps = await Promise.all(
+      months.map((month) => db.collection("profitMonthly").doc(month).get())
+    );
+    const items = months.map((month, idx) => {
+      const data = snaps[idx]?.exists ? snaps[idx].data() || {} : {};
       return {
         month,
-        totalInteres: Number(data.totalInteres || 0),
-        miGanancia: Number(data.miGanancia || 0),
-        intermediarios: Number(data.intermediarios || 0)
+        totalInteres: Number(data.interestTotalArs || 0),
+        miGanancia: Number(data.mineArs || 0),
+        intermediarios: Number(data.intermediaryArs || 0)
       };
     });
     return res.json({ items });
@@ -4522,6 +4543,16 @@ function getArgentinaDayRange(baseDate = new Date()) {
   return { start, end };
 }
 
+function getArgentinaDateString(baseDate = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  return formatter.format(baseDate);
+}
+
 function computeNextDueAt(loan) {
   const base = toDateValue(loan.nextDueDate) || toDateValue(loan.nextDueAt) || toDateValue(loan.createdAt);
   if (!base) return null;
@@ -4531,22 +4562,20 @@ function computeNextDueAt(loan) {
 
 app.get("/reports/dashboard", requireAuth, async (req, res) => {
   try {
-    const { start, end } = getArgentinaDayRange(new Date());
-    const paymentsSnap = await db
-      .collectionGroup("payments")
-      .where("paidAt", ">=", admin.firestore.Timestamp.fromDate(start))
-      .where("paidAt", "<=", admin.firestore.Timestamp.fromDate(end))
-      .get();
-
+    const todayKey = getArgentinaDateString(new Date());
+    const paymentsSnap = await db.collection("movements").where("occurredAt", "==", todayKey).get();
     let collectedToday = 0;
     paymentsSnap.forEach((docSnap) => {
       const data = docSnap.data() || {};
-      const amountBase = Number(data.amount || 0);
+      if (data.voided || data.deletedAt) return;
+      if (data.type !== "payment_create" && data.type !== "payment_void") return;
+      const payment = data.payment || {};
+      const amountBase = Number(payment.amount || 0);
       const amount =
         amountBase > 0
           ? amountBase
-          : Number(data.interestPaid || 0) + Number(data.principalPaid || 0);
-      collectedToday += amount;
+          : Number(payment.interestPaid || 0) + Number(payment.principalPaid || 0);
+      collectedToday += data.type === "payment_void" ? -amount : amount;
     });
 
     const loansSnap = await db.collection("loans").where("balance", ">", 0).get();
@@ -4571,45 +4600,41 @@ app.get("/reports/dashboard", requireAuth, async (req, res) => {
       }
     });
 
-    const latestPaymentsSnap = await db
-      .collectionGroup("payments")
-      .orderBy("paidAt", "desc")
-      .limit(10)
+    const latestMovementsSnap = await db
+      .collection("movements")
+      .orderBy("createdAt", "desc")
+      .limit(50)
       .get();
 
-    const transactions = await Promise.all(
-      latestPaymentsSnap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        const loanId = data.loanId || docSnap.ref.parent.parent?.id || null;
-        let loan = null;
-        let customer = null;
-        if (loanId) {
-          const loanSnap = await db.collection("loans").doc(loanId).get();
-          loan = loanSnap.exists ? loanSnap.data() : null;
-        }
-        const customerId = data.customerId || loan?.customerId;
-        if (customerId) {
-          const customerSnap = await db.collection("customers").doc(customerId).get();
-          customer = customerSnap.exists ? customerSnap.data() : null;
-        }
-        const paidAt = toDateValue(data.paidAt) || toDateValue(data.createdAt);
-        const amountBase = Number(data.amount || 0);
+    const transactions = latestMovementsSnap.docs
+      .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }))
+      .filter((item) => !item.voided && !item.deletedAt && item.type === "payment_create")
+      .slice(0, 10)
+      .map((item) => {
+        const payment = item.payment || {};
+        const amountBase = Number(payment.amount || 0);
         const amount =
           amountBase > 0
             ? amountBase
-            : Number(data.interestPaid || 0) + Number(data.principalPaid || 0);
+            : Number(payment.interestPaid || 0) + Number(payment.principalPaid || 0);
+        const paidAtValue = toDateValue(payment.paidAt) || toDateValue(item.occurredAt);
         return {
-          id: docSnap.id,
+          id: item.id,
           amount,
-          paidAt: paidAt ? paidAt.toISOString() : null,
-          method: data.method,
-          note: data.note,
-          loanStatus: normalizeLoanStatus(loan?.status) || "active",
-          customerName: customer?.fullName || customer?.name || "-"
+          paidAt: paidAtValue ? paidAtValue.toISOString() : null,
+          method: payment.method,
+          note: payment.note,
+          loanStatus: normalizeLoanStatus(item.loan?.status) || "active",
+          customerName: item.customer?.name || "-"
         };
-      })
-    );
+      });
 
+    functions.logger.info("[REPORTS_DASHBOARD]", {
+      collectedToday,
+      pendingCount,
+      overdueTotal,
+      transactions: transactions.length
+    });
     return res.json({
       summary: {
         collectedToday: Math.round(collectedToday * 100) / 100,
@@ -4870,7 +4895,7 @@ app.delete("/dollars/movements/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Movimiento no encontrado." });
     }
     if (error?.code === "ALREADY_VOIDED") {
-      return res.status(400).json({ ok: false, code: "ALREADY_VOIDED", message: "La operación ya fue anulada." });
+      return res.status(400).json({ ok: false, code: "ALREADY_VOIDED", message: "La operaci?n ya fue anulada." });
     }
     if (error?.code === "LOT_NOT_FOUND") {
       return res.status(404).json({ ok: false, code: "LOT_NOT_FOUND", message: "Lote no encontrado." });
@@ -4883,14 +4908,14 @@ app.delete("/dollars/movements/:id", requireAuth, async (req, res) => {
       });
     }
     if (error?.code === "INVALID_MOVEMENT") {
-      return res.status(400).json({ ok: false, code: "INVALID_MOVEMENT", message: "Movimiento inválido." });
+      return res.status(400).json({ ok: false, code: "INVALID_MOVEMENT", message: "Movimiento inv?lido." });
     }
     if (error?.code === "INVALID_TYPE") {
-      return res.status(400).json({ ok: false, code: "INVALID_TYPE", message: "Tipo de movimiento inválido." });
+      return res.status(400).json({ ok: false, code: "INVALID_TYPE", message: "Tipo de movimiento inv?lido." });
     }
     return sendJsonError(res, 500, {
       code: "DELETE_MOVEMENT_FAILED",
-      message: "No se pudo eliminar la operación.",
+      message: "No se pudo eliminar la operaci?n.",
       details: error.message || null
     });
   }
@@ -4947,7 +4972,7 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
       return res.status(400).json({
         ok: false,
         code: "INVALID_INPUT",
-        message: "Datos inválidos",
+        message: "Datos inv?lidos",
         invalid: invalidFields,
         received: req.body
       });
@@ -5069,7 +5094,7 @@ app.post("/dollars/sell", requireAuth, async (req, res) => {
       return res.status(400).json({
         ok: false,
         code: "INVALID_INPUT",
-        message: "Datos inválidos",
+        message: "Datos inv?lidos",
         invalid: invalidFields,
         received: req.body
       });
@@ -5254,7 +5279,7 @@ app.post("/dollars/sell", requireAuth, async (req, res) => {
 
 async function requireStaff(context, allowedRoles) {
   if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesi?n.");
   }
 
   const uid = context.auth.uid;
@@ -5307,7 +5332,7 @@ exports.bootstrapAdmin = functions.region("us-central1").https.onCall(async (dat
   if (!isEmulator) {
     throw new functions.https.HttpsError(
       "permission-denied",
-      "bootstrapAdmin solo está habilitado en emuladores."
+      "bootstrapAdmin solo est? habilitado en emuladores."
     );
   }
 
@@ -5436,7 +5461,7 @@ exports.addPayment = functions.https.onCall(async (data, context) => {
 
   const amount = Number(data.amount);
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new functions.https.HttpsError("invalid-argument", "Monto inválido.");
+    throw new functions.https.HttpsError("invalid-argument", "Monto inv?lido.");
   }
 
   const paidAt = data.paidAt ? parsePaidAtInput(data.paidAt) : null;
@@ -5620,7 +5645,7 @@ async function voidPaymentWithSideEffects({ paymentId, reason, actor }) {
     }
     const loanId = payment.loanId;
     if (!loanId) {
-      const error = new Error("Pago sin referencia de Préstamo.");
+      const error = new Error("Pago sin referencia de Pr?stamo.");
       error.status = 400;
       error.code = "LOAN_REQUIRED";
       throw error;
@@ -5629,7 +5654,7 @@ async function voidPaymentWithSideEffects({ paymentId, reason, actor }) {
     const loanRef = db.collection("loans").doc(loanId);
     const loanSnap = await tx.get(loanRef);
     if (!loanSnap.exists) {
-      const error = new Error("Préstamo no encontrado.");
+      const error = new Error("Pr?stamo no encontrado.");
       error.status = 404;
       error.code = "NOT_FOUND";
       throw error;
@@ -5778,7 +5803,7 @@ async function voidPaymentWithSideEffects({ paymentId, reason, actor }) {
         createdByEmail: payment.createdByEmail || null,
         loanId: loanRef.id,
         customerDni: loan.customerDni || loan.dni || loan.dniCliente || null,
-        note: `Anulación pago ${paymentRef.id}`,
+        note: `Anulaci?n pago ${paymentRef.id}`,
         source: "void"
       })
     );

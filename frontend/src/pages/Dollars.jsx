@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppHeader from "../components/AppHeader.jsx";
 import { api } from "../lib/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -28,6 +29,7 @@ function toDate(value) {
 }
 
 export default function Dollars() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("buy");
   const [buyForm, setBuyForm] = useState({ qtyUsd: "", buyPrice: "", note: "" });
   const [sellForm, setSellForm] = useState({ qtyUsd: "", sellPrice: "", note: "" });
@@ -479,80 +481,82 @@ export default function Dollars() {
                           <td>{trade.type === "sell" ? currencyFormatter.format(profit) : "-"}</td>
                           <td>{Number(trade.stockAfter || 0).toFixed(2)}</td>
                           <td style={{ width: 40, minWidth: 40, textAlign: "center" }}>
-                            <div style={{ position: "relative", display: "inline-block" }}>
-                              {isCompactActions ? (
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{
-                                    padding: "0.4rem",
-                                    borderRadius: "0.375rem",
-                                    minWidth: 0
-                                  }}
-                                  onClick={() =>
-                                    setActionMenuId((prev) => (prev === trade.id ? null : trade.id))
-                                  }
-                                >
-                                  ⋯
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{
-                                    padding: "0.4rem",
-                                    borderRadius: "0.375rem",
-                                    minWidth: 0,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center"
-                                  }}
-                                  onClick={() => handleOpenDelete(trade)}
-                                  aria-label="Eliminar"
-                                  title="Eliminar"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    width="18"
-                                    height="18"
-                                    fill="currentColor"
-                                    aria-hidden="true"
-                                  >
-                                    <path d="M9 3a1 1 0 0 0-1 1v1H5.5a1 1 0 1 0 0 2H6v11a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7h.5a1 1 0 1 0 0-2H16V4a1 1 0 0 0-1-1H9Zm1 2h4v1h-4V5Zm-1 5a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0v-7a1 1 0 0 1 1-1Zm6 1a1 1 0 1 0-2 0v7a1 1 0 1 0 2 0v-7Z" />
-                                  </svg>
-                                </button>
-                              )}
-                              {isCompactActions && actionMenuId === trade.id && (
-                                <div
-                                  style={{
-                                    position: "absolute",
-                                    right: 0,
-                                    top: "100%",
-                                    marginTop: 6,
-                                    background: "#fff",
-                                    border: "1px solid rgba(0,0,0,0.08)",
-                                    borderRadius: 8,
-                                    padding: 6,
-                                    zIndex: 10,
-                                    boxShadow: "0 6px 20px rgba(0,0,0,0.12)"
-                                  }}
-                                >
+                            {isAdmin && (
+                              <div style={{ position: "relative", display: "inline-block" }}>
+                                {isCompactActions ? (
                                   <button
                                     type="button"
                                     className="btn-secondary"
                                     style={{
-                                      width: "100%",
-                                      justifyContent: "flex-start",
-                                      padding: "0.4rem 0.6rem"
+                                      padding: "0.4rem",
+                                      borderRadius: "0.375rem",
+                                      minWidth: 0
+                                    }}
+                                    onClick={() =>
+                                      setActionMenuId((prev) => (prev === trade.id ? null : trade.id))
+                                    }
+                                  >
+                                    ⋯
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: "0.4rem",
+                                      borderRadius: "0.375rem",
+                                      minWidth: 0,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center"
                                     }}
                                     onClick={() => handleOpenDelete(trade)}
+                                    aria-label="Eliminar"
+                                    title="Eliminar"
                                   >
-                                    Eliminar
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      width="18"
+                                      height="18"
+                                      fill="currentColor"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M9 3a1 1 0 0 0-1 1v1H5.5a1 1 0 1 0 0 2H6v11a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7h.5a1 1 0 1 0 0-2H16V4a1 1 0 0 0-1-1H9Zm1 2h4v1h-4V5Zm-1 5a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0v-7a1 1 0 0 1 1-1Zm6 1a1 1 0 1 0-2 0v7a1 1 0 1 0 2 0v-7Z" />
+                                    </svg>
                                   </button>
-                                </div>
-                              )}
-                            </div>
+                                )}
+                                {isCompactActions && actionMenuId === trade.id && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      right: 0,
+                                      top: "100%",
+                                      marginTop: 6,
+                                      background: "#fff",
+                                      border: "1px solid rgba(0,0,0,0.08)",
+                                      borderRadius: 8,
+                                      padding: 6,
+                                      zIndex: 10,
+                                      boxShadow: "0 6px 20px rgba(0,0,0,0.12)"
+                                    }}
+                                  >
+                                    <button
+                                      type="button"
+                                      className="btn-secondary"
+                                      style={{
+                                        width: "100%",
+                                        justifyContent: "flex-start",
+                                        padding: "0.4rem 0.6rem"
+                                      }}
+                                      onClick={() => handleOpenDelete(trade)}
+                                    >
+                                      Eliminar
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

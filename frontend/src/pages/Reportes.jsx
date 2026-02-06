@@ -210,7 +210,7 @@ export default function Reportes() {
   
 
   const canVoidPayments = useMemo(() => isAdmin, [isAdmin]);
-  const canVoidMovements = true;
+  const canVoidMovements = useMemo(() => isAdmin, [isAdmin]);
   const canVoid = deleteTarget?.kind === "payment" ? canVoidPayments : canVoidMovements;
 
   useEffect(() => {
