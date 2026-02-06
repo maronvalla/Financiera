@@ -3331,7 +3331,11 @@ async function handleReportsDelete(req, res) {
     if (!id || (kind !== "loan" && kind !== "payment")) {
       return sendJsonError(res, 400, {
         code: "INVALID_INPUT",
-        message: "Par?metros inv?lidos."
+        message: "Parámetros inválidos.",
+        details: {
+          kind,
+          id: id || null
+        }
       });
     }
 
@@ -3631,17 +3635,19 @@ async function handleReportsDelete(req, res) {
 
 app.get("/reports", requireAuth, handleReportsApi);
 app.get("/loans/reports", requireAuth, handleReportsList);
-app.delete("/reports/:kind/:id", requireAuth, handleReportsDelete);
-app.delete("/loans/reports/:kind/:id", requireAuth, handleReportsDelete);
 
 app.delete("/reports/movements/:id", requireAuth, async (req, res) => {
   try {
     const adminUser = await requireAdmin(req, res);
     if (!adminUser) return;
     const id = String(req.params.id || "").trim();
-    const reason = String(req.body?.reason || "").trim();
+    const reason = String(req.body?.reason ?? req.query?.reason ?? "").trim();
     if (!id) {
-      return sendJsonError(res, 400, { code: "INVALID_INPUT", message: "ID requerido." });
+      return sendJsonError(res, 400, {
+        code: "INVALID_INPUT",
+        message: "Parámetros inválidos.",
+        details: { id: id || null }
+      });
     }
     const ref = db.collection("movements").doc(id);
     const snap = await ref.get();
@@ -3676,6 +3682,9 @@ app.delete("/reports/movements/:id", requireAuth, async (req, res) => {
     });
   }
 });
+
+app.delete("/reports/:kind/:id", requireAuth, handleReportsDelete);
+app.delete("/loans/reports/:kind/:id", requireAuth, handleReportsDelete);
 
 app.get("/profits/monthly", requireAuth, async (req, res) => {
   try {
