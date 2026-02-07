@@ -30,9 +30,6 @@ export default function Atesorado() {
   const [pageError, setPageError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
-  const [pending, setPending] = useState([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-  const [pendingError, setPendingError] = useState("");
 
   const [recipients, setRecipients] = useState([]);
   const [transferForm, setTransferForm] = useState({ toUid: "", amount: "" });
@@ -80,24 +77,10 @@ export default function Atesorado() {
     }
   };
 
-  const fetchPending = async () => {
-    setPendingLoading(true);
-    setPendingError("");
-    try {
-      const { data } = await api.get("/loans/pending-approvals");
-      setPending(Array.isArray(data?.items) ? data.items : []);
-    } catch (error) {
-      setPendingError(error?.response?.data?.message || "No se pudieron cargar los pendientes.");
-    } finally {
-      setPendingLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!currentUser) return;
     fetchSummary();
     fetchRecipients();
-    fetchPending();
   }, [currentUser]);
 
   const rows = useMemo(() => wallets, [wallets]);
@@ -158,32 +141,12 @@ export default function Atesorado() {
     }
   };
 
-  const handleApprove = async (loanId) => {
-    if (!loanId) return;
-    try {
-      await api.post(`/loans/${loanId}/approveFunding`);
-      await Promise.all([fetchSummary(), fetchPending()]);
-    } catch (error) {
-      setPendingError(error?.response?.data?.message || "No se pudo aprobar.");
-    }
-  };
-
-  const handleReject = async (loanId) => {
-    if (!loanId) return;
-    try {
-      await api.post(`/loans/${loanId}/rejectFunding`);
-      await Promise.all([fetchSummary(), fetchPending()]);
-    } catch (error) {
-      setPendingError(error?.response?.data?.message || "No se pudo rechazar.");
-    }
-  };
-
   return (
     <div className="container">
       <AppHeader title="Wallets" />
       <div className="card">
         <h2>Wallets (Atesorado)</h2>
-        <p className="muted">Saldos por usuario, transferencias y pendientes de aprobación.</p>
+        <p className="muted">Saldos por usuario y transferencias.</p>
       </div>
 
       <div className="card">
@@ -249,48 +212,6 @@ export default function Atesorado() {
             {transfering ? "Transfiriendo..." : "Transferir"}
           </button>
         </form>
-      </div>
-
-      <div className="card">
-        <div className="section-title">Pendientes de aprobación</div>
-        {pendingLoading && <p className="muted">Cargando pendientes...</p>}
-        {pendingError && <p className="error">{pendingError}</p>}
-        {!pendingLoading && pending.length === 0 && (
-          <p className="muted">No hay préstamos pendientes.</p>
-        )}
-        {!pendingLoading && pending.length > 0 && (
-          <div className="list">
-            {pending.map((item) => (
-              <div key={item.loanId || item.id} className="card">
-                <div style={{ fontWeight: 700 }}>{item.customerName || "Cliente"}</div>
-                <div className="muted">DNI: {item.customerDni || "-"}</div>
-                <div className="muted">
-                  Principal: {currencyFormatter.format(Number(item.principal || 0))}
-                </div>
-                <div className="muted">
-                  Interés: {Number(item.rateValue || 0)}% ·{" "}
-                  {item.termCount ? `${item.termCount} ${item.termPeriod || ""}` : "Americano"}
-                </div>
-                <div className="button-row" style={{ marginTop: "0.75rem" }}>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => handleApprove(item.loanId || item.id)}
-                  >
-                    Aprobar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => handleReject(item.loanId || item.id)}
-                  >
-                    Rechazar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="card">

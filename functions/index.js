@@ -5,6 +5,7 @@ const cors = require("cors");
 const { computeTotalDue, roundMoney } = require("./computeTotalDue");
 const { logAudit } = require("./audit");
 const { requireAuth } = require("./middleware/requireAuth");
+const { runTelegramDaily, handleTelegramDailyRequest } = require("./src/telegram");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -69,7 +70,13 @@ app.get("/auth/me", requireAuth, (req, res) => {
   });
 });
 
-exports.api = functions.https.onRequest(app);
+app.get("/bot/telegram-daily", async (req, res) => {
+  return handleTelegramDailyRequest({ req, res, db, admin, helpers: getTelegramHelpers() });
+});
+
+exports.api = functions
+  .runWith({ secrets: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_DEBUG_SECRET"] })
+  .https.onRequest(app);
 
 function toNumber(value) {
   const parsed = Number(value);
@@ -100,6 +107,19 @@ function normalizeLoanStatus(value) {
   return raw;
 }
 
+function getTelegramHelpers() {
+  return {
+    normalizeLoanType,
+    normalizeLoanStatus,
+    ensureLoanInstallments,
+    isInstallmentPaid,
+    toDateValue,
+    getArgentinaDateString,
+    roundMoney,
+    toNumber,
+    normalizePhone
+  };
+}
 function getStatusFilterValues(rawStatus) {
   const normalized = normalizeLoanStatus(rawStatus);
   if (!normalized) return { normalized: "", values: [] };
@@ -1983,32 +2003,11 @@ app.post("/loans", requireAuth, async (req, res) => {
     const computedTotal =
       principal > 0 && termCount > 0 ? principal * (1 + monthlyRate * monthsEquivalent) : 0;
     const totalDue = toNumber(req.body.totalDue || computedTotal);
-    const fundingModeRaw = String(req.body.fundingMode || "SELF").trim().toUpperCase();
-    let fundingMode = fundingModeRaw === "OTHER" ? "OTHER" : "SELF";
-    let fundingSourceUid = req.user?.uid || null;
-    let fundingSourceEmail = req.user?.email || null;
-    if (fundingMode === "OTHER") {
-      const requestedUid = String(req.body.fundingSourceUid || "").trim();
-      const requestedEmail = String(req.body.fundingSourceEmail || "").trim().toLowerCase();
-      if (requestedUid) {
-        fundingSourceUid = requestedUid;
-      }
-      if (requestedEmail) {
-        fundingSourceEmail = requestedEmail;
-      }
-      if (!fundingSourceUid && fundingSourceEmail) {
-        const resolved = await resolveUserByEmail(fundingSourceEmail);
-        if (resolved) {
-          fundingSourceUid = resolved.uid;
-          fundingSourceEmail = resolved.email || fundingSourceEmail;
-        }
-      }
-      if (!fundingSourceUid || !fundingSourceEmail) {
-        return res.status(400).json({ message: "No se pudo resolver el financista." });
-      }
-      if (fundingSourceUid === req.user?.uid) {
-        fundingMode = "SELF";
-      }
+    const fundingMode = "SELF";
+    const fundingSourceUid = req.user?.uid || null;
+    const fundingSourceEmail = req.user?.email || null;
+    if (!fundingSourceUid) {
+      return res.status(401).json({ message: "Usuario no autenticado." });
     }
 
     let resolvedCustomerId = String(req.body.customerId || "").trim() || null;
@@ -2053,15 +2052,15 @@ app.post("/loans", requireAuth, async (req, res) => {
       interestSplit = { totalPct: 100, intermediaryPct: 0, myPct: 100 };
     }
 
-    const fundingStatus = fundingMode === "OTHER" ? "PENDING" : "APPROVED";
+    const fundingStatus = "APPROVED";
     const funding = {
       sourceUid: fundingSourceUid,
       sourceEmail: normalizeEmailValue(fundingSourceEmail || "Sin asignar"),
       mode: fundingMode,
       status: fundingStatus,
       requestedAt: admin.firestore.FieldValue.serverTimestamp(),
-      decidedAt: fundingStatus === "APPROVED" ? admin.firestore.FieldValue.serverTimestamp() : null,
-      decidedByUid: fundingStatus === "APPROVED" ? req.user?.uid || null : null
+      decidedAt: admin.firestore.FieldValue.serverTimestamp(),
+      decidedByUid: req.user?.uid || null
     };
 
     let payload = null;
@@ -2107,7 +2106,6 @@ app.post("/loans", requireAuth, async (req, res) => {
         interestEarnedMineTotal: 0,
         interestEarnedIntermediaryTotal: 0,
         funding,
-        status: fundingStatus === "PENDING" ? "pending" : "active",
         createdByUid: req.user?.uid || null,
         createdByEmail: req.user?.email || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -2159,7 +2157,6 @@ app.post("/loans", requireAuth, async (req, res) => {
         interestEarnedMineTotal: 0,
         interestEarnedIntermediaryTotal: 0,
         funding,
-        status: fundingStatus === "PENDING" ? "pending" : "active",
         createdByUid: req.user?.uid || null,
         createdByEmail: req.user?.email || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -2170,43 +2167,18 @@ app.post("/loans", requireAuth, async (req, res) => {
     const treasurySummaryRef = db.collection("treasurySummary").doc("primary");
     const walletLedgerRef = db.collection("ledger").doc();
     const walletMovementRef = db.collection("wallet_movements").doc();
-    const pendingRef = db.collection("pendingApprovals").doc(loanRef.id);
     const disbursedAmount = roundMoney(toNumber(payload.principalOriginal || payload.principal || 0));
     const outstandingAmount = roundMoney(toNumber(payload.capitalPending || payload.balance || 0));
 
     await db.runTransaction(async (tx) => {
-      let fundingWallet = null;
-      if (fundingStatus !== "PENDING") {
-        fundingWallet = await getWalletData(tx, funding.sourceUid, funding.sourceEmail);
-        if (fundingWallet.balance < disbursedAmount) {
-          const err = new Error("Saldo insuficiente para financiar el Préstamo.");
-          err.status = 400;
-          throw err;
-        }
+      const fundingWallet = await getWalletData(tx, funding.sourceUid, funding.sourceEmail);
+      if (fundingWallet.balance < disbursedAmount) {
+        const err = new Error("Saldo insuficiente para financiar el Préstamo.");
+        err.status = 400;
+        throw err;
       }
 
       tx.set(loanRef, payload);
-      if (fundingStatus === "PENDING") {
-        tx.set(pendingRef, {
-          loanId: loanRef.id,
-          status: "PENDING",
-          sourceUid: funding.sourceUid,
-          sourceEmail: funding.sourceEmail,
-          requestedByUid: req.user?.uid || null,
-          requestedByEmail: normalizeEmailValue(req.user?.email || "Sin asignar"),
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          requestedAt: admin.firestore.FieldValue.serverTimestamp(),
-          customerName: payload.customerName || "",
-          customerDni: payload.customerDni || "",
-          principal: disbursedAmount,
-          rateValue: payload.rateValue || payload.interestRate || 0,
-          termCount: payload.termCount || null,
-          termPeriod: payload.termPeriod || payload.frequency || null,
-          startDate: payload.startDate || null,
-          loanType: payload.loanType || "simple"
-        });
-        return;
-      }
 
       tx.set(
         fundingWallet.walletRef,
@@ -2287,174 +2259,69 @@ app.post("/loans", requireAuth, async (req, res) => {
 });
 
 app.get("/loans/pending-approvals", requireAuth, async (req, res) => {
-  try {
-    res.set("Cache-Control", "no-store");
-    const uid = req.user?.uid || null;
-    if (!uid) return res.json({ items: [] });
-    const snap = await db
-      .collection("pendingApprovals")
-      .where("sourceUid", "==", uid)
-      .where("status", "==", "PENDING")
-      .get();
-    const items = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    return res.json({ items });
-  } catch (error) {
-    return res.status(500).json({ message: error.message || "No se pudieron cargar los pendientes." });
-  }
+  return res.status(410).json({
+    items: [],
+    message: "Aprobaciones de préstamos desactivadas."
+  });
 });
 
 app.post("/loans/:id/approveFunding", requireAuth, async (req, res) => {
-  try {
-    const loanId = String(req.params.id || "").trim();
-    if (!loanId) return res.status(400).json({ message: "ID requerido." });
-    const loanRef = db.collection("loans").doc(loanId);
-    const pendingRef = db.collection("pendingApprovals").doc(loanId);
-    const treasurySummaryRef = db.collection("treasurySummary").doc("primary");
-    const ledgerRef = db.collection("ledger").doc();
-
-    await db.runTransaction(async (tx) => {
-      const loanSnap = await tx.get(loanRef);
-      if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
-        err.status = 404;
-        throw err;
-      }
-      const loan = loanSnap.data() || {};
-      const funding = loan.funding || {};
-      const fundingStatus = String(funding.status || "").toUpperCase();
-      if (fundingStatus !== "PENDING") {
-        const err = new Error("El Préstamo no está pendiente.");
-        err.status = 400;
-        throw err;
-      }
-      if (funding.sourceUid !== req.user?.uid) {
-        const err = new Error("No autorizado para aprobar este Préstamo.");
-        err.status = 403;
-        throw err;
-      }
-
-      const disbursedAmount = roundMoney(toNumber(loan.principalOriginal || loan.principal || 0));
-      const outstandingAmount = roundMoney(toNumber(loan.capitalPending || loan.balance || 0));
-      const fundingWallet = await getWalletData(tx, funding.sourceUid, funding.sourceEmail);
-      if (fundingWallet.balance < disbursedAmount) {
-        const err = new Error("Saldo insuficiente para aprobar.");
-        err.status = 400;
-        throw err;
-      }
-
-      tx.set(
-        fundingWallet.walletRef,
-        {
-          uid: fundingWallet.walletUid,
-          email: fundingWallet.email,
-          balance: roundMoney(fundingWallet.balance - disbursedAmount),
-          balanceArs: roundMoney(fundingWallet.balance - disbursedAmount),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        },
-        { merge: true }
-      );
-      tx.set(ledgerRef, {
-        type: "LOAN_DISBURSE",
-        amountARS: disbursedAmount,
-        fromUid: fundingWallet.walletUid,
-        loanId: loanRef.id,
-        createdByUid: req.user?.uid || null,
-        createdByEmail: normalizeEmailValue(req.user?.email || "Sin asignar"),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        meta: {
-          fromEmail: fundingWallet.email
-        }
-      });
-      const walletMovementRef = db.collection("wallet_movements").doc();
-      tx.set(walletMovementRef, {
-        type: "LOAN_DISBURSE",
-        amount: disbursedAmount,
-        fromUid: fundingWallet.walletUid,
-        createdByUid: req.user?.uid || null,
-        createdByEmail: normalizeEmailValue(req.user?.email || "Sin asignar"),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        meta: {
-          loanId: loanRef.id
-        }
-      });
-      tx.set(
-        treasurySummaryRef,
-        {
-          totalDisbursedArs: admin.firestore.FieldValue.increment(disbursedAmount),
-          totalLoanOutstandingArs: admin.firestore.FieldValue.increment(outstandingAmount),
-          liquidArs: admin.firestore.FieldValue.increment(-disbursedAmount),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        },
-        { merge: true }
-      );
-      tx.update(loanRef, {
-        funding: {
-          ...funding,
-          status: "APPROVED",
-          decidedAt: admin.firestore.FieldValue.serverTimestamp(),
-          decidedByUid: req.user?.uid || null
-        },
-        status: "active",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      tx.set(
-        pendingRef,
-        {
-          status: "APPROVED",
-          decidedAt: admin.firestore.FieldValue.serverTimestamp(),
-          decidedByUid: req.user?.uid || null,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        },
-        { merge: true }
-      );
-    });
-
-    return res.json({ ok: true });
-  } catch (error) {
-    const status = error.status || 500;
-    return res.status(status).json({ message: error.message || "No se pudo aprobar." });
-  }
+  return res.status(410).json({
+    ok: false,
+    message: "Aprobaciones de préstamos desactivadas."
+  });
 });
 
 app.post("/loans/:id/rejectFunding", requireAuth, async (req, res) => {
+  return res.status(410).json({
+    ok: false,
+    message: "Aprobaciones de préstamos desactivadas."
+  });
+});
+
+app.post("/loans/pending-approvals/migrate", requireAuth, async (req, res) => {
   try {
-    const loanId = String(req.params.id || "").trim();
-    if (!loanId) return res.status(400).json({ message: "ID requerido." });
-    const loanRef = db.collection("loans").doc(loanId);
-    const pendingRef = db.collection("pendingApprovals").doc(loanId);
+    const adminUser = await requireAdmin(req, res);
+    if (!adminUser) return;
 
-    await db.runTransaction(async (tx) => {
-      const loanSnap = await tx.get(loanRef);
-      if (!loanSnap.exists) {
-        const err = new Error("Préstamo no encontrado.");
-        err.status = 404;
-        throw err;
-      }
-      const loan = loanSnap.data() || {};
-      const funding = loan.funding || {};
-      const fundingStatus = String(funding.status || "").toUpperCase();
-      if (fundingStatus !== "PENDING") {
-        const err = new Error("El Préstamo no está pendiente.");
-        err.status = 400;
-        throw err;
-      }
-      if (funding.sourceUid !== req.user?.uid) {
-        const err = new Error("No autorizado para rechazar este Préstamo.");
-        err.status = 403;
-        throw err;
+    const mode = String(req.body?.mode || "reject").trim().toLowerCase();
+    if (mode !== "reject") {
+      return res.status(400).json({ message: "Modo inválido. Usá mode=reject." });
+    }
+
+    const snap = await db.collection("pendingApprovals").where("status", "==", "PENDING").get();
+    if (snap.empty) {
+      return res.json({ ok: true, updatedPending: 0, updatedLoans: 0, skippedLoans: 0 });
+    }
+
+    let updatedPending = 0;
+    let updatedLoans = 0;
+    let skippedLoans = 0;
+    let batch = db.batch();
+    let batchOps = 0;
+
+    for (const docSnap of snap.docs) {
+      const pendingRef = docSnap.ref;
+      const loanRef = db.collection("loans").doc(docSnap.id);
+      const loanSnap = await loanRef.get();
+      if (loanSnap.exists) {
+        batch.update(loanRef, {
+          funding: {
+            ...(loanSnap.data()?.funding || {}),
+            status: "REJECTED",
+            decidedAt: admin.firestore.FieldValue.serverTimestamp(),
+            decidedByUid: req.user?.uid || null
+          },
+          status: "rejected",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updatedLoans += 1;
+        batchOps += 1;
+      } else {
+        skippedLoans += 1;
       }
 
-      tx.update(loanRef, {
-        funding: {
-          ...funding,
-          status: "REJECTED",
-          decidedAt: admin.firestore.FieldValue.serverTimestamp(),
-          decidedByUid: req.user?.uid || null
-        },
-        status: "rejected",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      tx.set(
+      batch.set(
         pendingRef,
         {
           status: "REJECTED",
@@ -2464,12 +2331,23 @@ app.post("/loans/:id/rejectFunding", requireAuth, async (req, res) => {
         },
         { merge: true }
       );
-    });
+      updatedPending += 1;
+      batchOps += 1;
 
-    return res.json({ ok: true });
+      if (batchOps >= 450) {
+        await batch.commit();
+        batch = db.batch();
+        batchOps = 0;
+      }
+    }
+
+    if (batchOps > 0) {
+      await batch.commit();
+    }
+
+    return res.json({ ok: true, updatedPending, updatedLoans, skippedLoans });
   } catch (error) {
-    const status = error.status || 500;
-    return res.status(status).json({ message: error.message || "No se pudo rechazar." });
+    return res.status(500).json({ message: error.message || "No se pudo migrar pendientes." });
   }
 });
 
@@ -5618,6 +5496,15 @@ exports.addPayment = functions.https.onCall(async (data, context) => {
 
   return result;
 });
+
+exports.telegramDailyDue = functions
+  .runWith({ secrets: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_DEBUG_SECRET"] })
+  .pubsub.schedule("0 9 * * *")
+  .timeZone("America/Argentina/Buenos_Aires")
+  .onRun(async () => {
+    await runTelegramDaily({ db, admin, helpers: getTelegramHelpers() });
+    return null;
+  });
 
 exports.onCustomerCreate = functions.firestore
   .document("customers/{customerId}")

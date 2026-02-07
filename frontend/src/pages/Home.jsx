@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 
 function HomeCard({ title, description, onClick }) {
@@ -38,7 +38,7 @@ export default function Home() {
         />
         <HomeCard
           title="Wallets"
-          description="Billeteras por usuario, transferencias y pendientes."
+          description="Billeteras por usuario y transferencias."
           onClick={() => navigate("/atesorado")}
         />
       </div>

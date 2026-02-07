@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
 import AppHeader from "../components/AppHeader.jsx";
 import { api } from "../lib/api.js";
 import { formatYMDToDMY, isValidDMY, parseDMYToYMD } from "../lib/date.js";
-import { auth } from "../firebase.js";
 
 const PERIODS = {
   monthly: { label: "Mensual", monthsFactor: 1, toMonthly: 1 },
@@ -91,9 +89,6 @@ export default function RegisterLoan() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [wallets, setWallets] = useState([]);
-  const [walletsError, setWalletsError] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
 
   const todayYmd = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
@@ -107,9 +102,7 @@ export default function RegisterLoan() {
     hasIntermediary: false,
     intermediaryName: "",
     totalPct: "",
-    intermediaryPct: "",
-    fundingMode: "SELF",
-    fundingSourceUid: ""
+    intermediaryPct: ""
   });
   const [startDateDisplay, setStartDateDisplay] = useState(formatYMDToDMY(todayYmd));
 
@@ -160,33 +153,7 @@ export default function RegisterLoan() {
     }
 
     return results;
-  }, [calculated.totalDue, calculated.termCount, form.termPeriod, form.startDate]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user || null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const fetchWallets = async () => {
-      if (!currentUser) return;
-      setWalletsError("");
-      try {
-        const { data } = await api.get("/wallets/summary");
-        setWallets(Array.isArray(data?.wallets) ? data.wallets : []);
-      } catch (err) {
-        setWalletsError(err?.response?.data?.message || "No se pudieron cargar las wallets.");
-      }
-    };
-    fetchWallets();
-  }, [currentUser]);
-
-  const otherWallets = useMemo(
-    () => wallets.filter((wallet) => wallet.uid && wallet.uid !== currentUser?.uid),
-    [wallets, currentUser]
-  );
+  }, [calculated.totalDue, calculated.termCount, form.termPeriod, form.startDate, form.loanType]);
 
   const handleSearch = async (event) => {
     event.preventDefault();
@@ -255,15 +222,6 @@ export default function RegisterLoan() {
     setMessage("");
   };
 
-  const handleFundingChange = (event) => {
-    const value = event.target.value;
-    if (value === "SELF") {
-      setForm((prev) => ({ ...prev, fundingMode: "SELF", fundingSourceUid: "" }));
-      return;
-    }
-    setForm((prev) => ({ ...prev, fundingMode: "OTHER", fundingSourceUid: value }));
-  };
-
   const handleIntermediaryToggle = (event) => {
     const checked = event.target.checked;
     setForm((prev) => ({
@@ -319,18 +277,12 @@ export default function RegisterLoan() {
         intermediaryName: form.hasIntermediary ? form.intermediaryName.trim() : "",
         interestSplit: form.hasIntermediary
           ? {
-              totalPct,
-              intermediaryPct,
-              myPct
-            }
-          : { totalPct: 100, intermediaryPct: 0, myPct: 100 },
-        fundingMode: form.fundingMode
+            totalPct,
+            intermediaryPct,
+            myPct
+          }
+          : { totalPct: 100, intermediaryPct: 0, myPct: 100 }
       };
-      if (form.fundingMode === "OTHER") {
-        const fundingWallet = wallets.find((item) => item.uid === form.fundingSourceUid);
-        payload.fundingSourceUid = form.fundingSourceUid;
-        payload.fundingSourceEmail = fundingWallet?.email || "";
-      }
       await api.post("/loans", payload);
       const nextStartDate = new Date().toISOString().slice(0, 10);
       setForm({
@@ -344,9 +296,7 @@ export default function RegisterLoan() {
         hasIntermediary: false,
         intermediaryName: "",
         totalPct: "",
-        intermediaryPct: "",
-        fundingMode: "SELF",
-        fundingSourceUid: ""
+        intermediaryPct: ""
       });
       setStartDateDisplay(formatYMDToDMY(nextStartDate));
       setMessage("Prestamo registrado correctamente.");
@@ -368,7 +318,6 @@ export default function RegisterLoan() {
       Math.abs(intermediaryPctValue + myPctValue - totalPctValue) < 0.01);
   const startDateError =
     startDateDisplay && !isValidDMY(startDateDisplay) ? "Fecha de inicio inválida." : "";
-  const fundingValid = form.fundingMode !== "OTHER" || !!form.fundingSourceUid;
   const canSubmit =
     selectedCustomer &&
     calculated.principal > 0 &&
@@ -376,8 +325,7 @@ export default function RegisterLoan() {
     isValidStartDate(form.startDate) &&
     isValidDMY(startDateDisplay) &&
     (form.loanType === "americano" || calculated.termCount > 0) &&
-    splitValid &&
-    fundingValid;
+    splitValid;
 
   return (
     <div className="container">
@@ -561,32 +509,6 @@ export default function RegisterLoan() {
               </label>
             )}
             <label>
-              Fondos
-              <select
-                value={form.fundingMode === "SELF" ? "SELF" : form.fundingSourceUid}
-                onChange={handleFundingChange}
-              >
-                <option value="SELF">Mis fondos</option>
-                {otherWallets.map((wallet) => (
-                  <option key={wallet.uid} value={wallet.uid}>
-                    Fondos de {wallet.email || "Sin asignar"}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {walletsError && (
-              <div className="span-full">
-                <p className="error">{walletsError}</p>
-              </div>
-            )}
-            {form.fundingMode === "OTHER" && (
-              <div className="span-full">
-                <p className="muted">
-                  Queda pendiente hasta que el otro usuario apruebe el financiamiento.
-                </p>
-              </div>
-            )}
-            <label>
               Fecha de inicio
               <input
                 type="text"
@@ -652,11 +574,6 @@ export default function RegisterLoan() {
             {!splitValid && (
               <div className="span-full">
                 <p className="error">El split de interés no coincide.</p>
-              </div>
-            )}
-            {!fundingValid && (
-              <div className="span-full">
-                <p className="error">Seleccioná el financista.</p>
               </div>
             )}
             {error && (
