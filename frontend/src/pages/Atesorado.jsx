@@ -119,10 +119,6 @@ export default function Atesorado() {
       setTransferError("Ingresá un monto válido.");
       return;
     }
-    if (currentWallet && amount > Number(currentWallet.balance || currentWallet.balanceArs || 0)) {
-      setTransferError("El monto supera el saldo disponible.");
-      return;
-    }
     setTransfering(true);
     setTransferError("");
     setTransferSuccess("");

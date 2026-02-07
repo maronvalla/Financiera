@@ -2172,11 +2172,6 @@ app.post("/loans", requireAuth, async (req, res) => {
 
     await db.runTransaction(async (tx) => {
       const fundingWallet = await getWalletData(tx, funding.sourceUid, funding.sourceEmail);
-      if (fundingWallet.balance < disbursedAmount) {
-        const err = new Error("Saldo insuficiente para financiar el Préstamo.");
-        err.status = 400;
-        throw err;
-      }
 
       tx.set(loanRef, payload);
 
@@ -4003,11 +3998,6 @@ app.post("/wallets/transfer", requireAuth, async (req, res) => {
     await db.runTransaction(async (tx) => {
       const fromWallet = await getWalletData(tx, fromUid, fromEmail);
       const toWallet = await getWalletData(tx, toUid, toEmail || "Sin asignar");
-      if (fromWallet.balance < amountARS) {
-        const err = new Error("Saldo insuficiente.");
-        err.status = 400;
-        throw err;
-      }
 
       tx.set(
         fromWallet.walletRef,
