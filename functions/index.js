@@ -31,10 +31,58 @@ app.use((req, res, next) => {
   next();
 });
 
+function requireRole(allowedRoles) {
+  const normalized = Array.isArray(allowedRoles)
+    ? allowedRoles.map((item) => String(item || "").trim().toLowerCase())
+    : [];
+  return async (req, res, next) => {
+    const uid = req.user?.uid || null;
+    if (!uid) {
+      res.status(401).json({ ok: false, code: "UNAUTHENTICATED", message: "Token requerido." });
+      return;
+    }
+    const roleInfo = await getRoleInfo(uid, req.user?.email || null);
+    if (roleInfo.admin) return next();
+    const role = String(roleInfo.role || "").trim().toLowerCase();
+    if (!role || !normalized.includes(role)) {
+      res.status(403).json({ ok: false, code: "FORBIDDEN", message: "Acceso restringido." });
+      return;
+    }
+    return next();
+  };
+}
+
+function blockRoles(disallowedRoles) {
+  const normalized = Array.isArray(disallowedRoles)
+    ? disallowedRoles.map((item) => String(item || "").trim().toLowerCase())
+    : [];
+  return async (req, res, next) => {
+    const uid = req.user?.uid || null;
+    if (!uid) return next();
+    const roleInfo = await getRoleInfo(uid, req.user?.email || null);
+    if (roleInfo.admin) return next();
+    const role = String(roleInfo.role || "").trim().toLowerCase();
+    if (role && normalized.includes(role)) {
+      res.status(403).json({ ok: false, code: "FORBIDDEN", message: "Acceso restringido." });
+      return;
+    }
+    return next();
+  };
+}
+
 app.use("/loans", requireAuth);
 app.use("/payments", requireAuth);
-app.use("/dollars", requireAuth);
 app.use("/reports", requireAuth);
+app.use("/wallets", requireAuth);
+app.use("/customers", requireAuth);
+
+app.use("/loans", blockRoles(["dollars"]));
+app.use("/payments", blockRoles(["dollars"]));
+app.use("/reports", blockRoles(["dollars"]));
+app.use("/wallets", blockRoles(["dollars"]));
+app.use("/customers", blockRoles(["dollars"]));
+
+app.use("/dollars", requireAuth, requireRole(["admin", "dollars"]));
 
 app.get("/", (req, res) => {
   return res.json({ ok: true, service: "api" });
@@ -68,6 +116,55 @@ app.get("/auth/me", requireAuth, (req, res) => {
       message: error.message || "No se pudo cargar el usuario."
     });
   });
+});
+
+app.post("/admin/users", requireAuth, async (req, res) => {
+  try {
+    const adminUser = await requireAdmin(req, res);
+    if (!adminUser) return;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "").trim();
+    const roleRaw = String(req.body?.role || "dollars").trim().toLowerCase();
+    const role = roleRaw === "dollars" ? "dollars" : roleRaw === "admin" ? "admin" : "dollars";
+    const displayName = String(req.body?.displayName || "").trim();
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: "Email y password requeridos." });
+    }
+
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      displayName: displayName || undefined,
+      emailVerified: false,
+      disabled: false
+    });
+
+    await db.collection("users").doc(userRecord.uid).set(
+      {
+        uid: userRecord.uid,
+        email,
+        role,
+        active: true,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdByUid: adminUser.uid,
+        createdByEmail: adminUser.email || null
+      },
+      { merge: true }
+    );
+
+    return res.status(201).json({
+      ok: true,
+      uid: userRecord.uid,
+      email: userRecord.email,
+      role
+    });
+  } catch (error) {
+    const message =
+      error?.code === "auth/email-already-exists"
+        ? "El email ya está registrado."
+        : error.message || "No se pudo crear el usuario.";
+    return res.status(500).json({ ok: false, message });
+  }
 });
 
 app.get("/bot/telegram-daily", async (req, res) => {

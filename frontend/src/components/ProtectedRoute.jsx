@@ -1,23 +1,16 @@
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { Navigate } from "react-router-dom";
-import { auth } from "../firebase.js";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 
-export default function ProtectedRoute({ children }) {
-  const [checking, setChecking] = useState(true);
-  const [user, setUser] = useState(null);
+export default function ProtectedRoute({ children, allowedRoles = null }) {
+  const location = useLocation();
+  const { user, isAdmin, role, loading } = useAuth();
   const [walletEnsured, setWalletEnsured] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
-      setChecking(false);
-      setWalletEnsured(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    setWalletEnsured(false);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user || walletEnsured) return;
@@ -33,7 +26,11 @@ export default function ProtectedRoute({ children }) {
     ensureWallet();
   }, [user, walletEnsured]);
 
-  if (checking) {
+  const isDollarsOnly = role === "dollars" && !isAdmin;
+  const isAllowedRole =
+    !allowedRoles || isAdmin || (role && allowedRoles.map((item) => item.toLowerCase()).includes(role));
+
+  if (loading) {
     return (
       <div className="container">
         <div className="card">
@@ -46,6 +43,14 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (isDollarsOnly && location.pathname !== "/dolares") {
+    return <Navigate to="/dolares" replace />;
+  }
+
+  if (!isAllowedRole) {
+    return <Navigate to="/dolares" replace />;
   }
 
   return children;

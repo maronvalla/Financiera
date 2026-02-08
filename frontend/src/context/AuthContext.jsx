@@ -6,12 +6,14 @@ import { api } from "../lib/api.js";
 const AuthContext = createContext({
   user: null,
   isAdmin: false,
+  role: null,
   loading: true
 });
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export function AuthProvider({ children }) {
     const resolveRole = async () => {
       if (!user?.uid) {
         if (mounted) setIsAdmin(false);
+        if (mounted) setRole(null);
         return;
       }
       try {
@@ -34,8 +37,10 @@ export function AuthProvider({ children }) {
         const data = response?.data || {};
         const adminFlag = data?.isAdmin === true || data?.admin === true || data?.role === "admin";
         if (mounted) setIsAdmin(Boolean(adminFlag));
+        if (mounted) setRole(data?.role || null);
       } catch (error) {
         if (mounted) setIsAdmin(false);
+        if (mounted) setRole(null);
       }
     };
     resolveRole();
@@ -44,7 +49,7 @@ export function AuthProvider({ children }) {
     };
   }, [user]);
 
-  const value = useMemo(() => ({ user, isAdmin, loading }), [user, isAdmin, loading]);
+  const value = useMemo(() => ({ user, isAdmin, role, loading }), [user, isAdmin, role, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
