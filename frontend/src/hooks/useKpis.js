@@ -24,7 +24,7 @@ export default function useKpis() {
           debtorsCount: Number(payload.debtorsCount || 0),
           interestMonth: Number(payload.interestMonth || 0)
         });
-      } catch (error) {
+      } catch {
         if (!alive) return;
         setState((prev) => ({ ...prev, loading: false }));
       }

@@ -44,9 +44,9 @@ function formatDateTime(value) {
 function getTypeLabel(type) {
   switch (type) {
     case "loan_create":
-      return "Préstamo alta";
+      return "PrÃ©stamo alta";
     case "loan_void":
-      return "Préstamo anulado";
+      return "PrÃ©stamo anulado";
     case "payment_create":
       return "Pago";
     case "payment_void":
@@ -56,7 +56,7 @@ function getTypeLabel(type) {
     case "usd_sell":
       return "Venta USD";
     case "usd_void":
-      return "Anulación USD";
+      return "AnulaciÃ³n USD";
     default:
       return type || "Movimiento";
   }
@@ -70,7 +70,7 @@ function formatDetail(item) {
     const rate = Number(loan.interestRate || 0);
     const frequency = loan.frequency || "-";
     const loanType = loan.loanType || "-";
-    return `Principal ${currencyFormatter.format(principal)} · Interés ${rate}% · ${frequency} · ${loanType}`;
+    return `Principal ${currencyFormatter.format(principal)} Â· InterÃ©s ${rate}% Â· ${frequency} Â· ${loanType}`;
   }
   if (item.type === "payment_create" || item.type === "payment_void") {
     const payment = item.payment || {};
@@ -78,16 +78,16 @@ function formatDetail(item) {
     const interestTotal = Number(payment.interestTotal || 0);
     const interestMine = Number(payment.interestMine || 0);
     const interestIntermediary = Number(payment.interestIntermediary || 0);
-    return `Monto ${amount} · Interés ${currencyFormatter.format(interestTotal)} · Mío ${currencyFormatter.format(
+    return `Monto ${amount} Â· InterÃ©s ${currencyFormatter.format(interestTotal)} Â· MÃ­o ${currencyFormatter.format(
       interestMine
-    )} · Intermediario ${currencyFormatter.format(interestIntermediary)}`;
+    )} Â· Intermediario ${currencyFormatter.format(interestIntermediary)}`;
   }
   if (item.type === "usd_buy" || item.type === "usd_sell" || item.type === "usd_void") {
     const usd = item.usd || {};
     const usdQty = Number(usd.usd || 0);
     const price = Number(usd.price || 0);
     const totalArs = Number(usd.totalArs || 0);
-    return `USD ${usdQty} · ${currencyFormatter.format(price)} · Total ${currencyFormatter.format(totalArs)}`;
+    return `USD ${usdQty} Â· ${currencyFormatter.format(price)} Â· Total ${currencyFormatter.format(totalArs)}`;
   }
   return item.note || "-";
 }
@@ -140,7 +140,7 @@ export default function Reportes() {
       if (status === 403) {
         setError("No ten\u00e9s permisos para ver reportes.");
       } else if (status === 401) {
-        setError("Iniciá sesión para ver reportes.");
+        setError("IniciÃ¡ sesiÃ³n para ver reportes.");
       } else {
         setError(err?.response?.data?.message || "No se pudieron cargar los reportes.");
       }
@@ -173,7 +173,7 @@ export default function Reportes() {
       if (status === 403) {
         setPaymentsError("No ten\u00e9s permisos para ver pagos.");
       } else if (status === 401) {
-        setPaymentsError("Iniciá sesión para ver pagos.");
+        setPaymentsError("IniciÃ¡ sesiÃ³n para ver pagos.");
       } else {
         setPaymentsError(err?.response?.data?.message || "No se pudieron cargar los pagos.");
       }
@@ -284,7 +284,7 @@ export default function Reportes() {
         console.warn("[REPORTS_VOID_FAILED]", { status, message: data?.message || err?.message });
       }
       if (status === 401) {
-        setDeleteError("Sesión vencida, volvé a iniciar sesión");
+        setDeleteError("SesiÃ³n vencida, volvÃ© a iniciar sesiÃ³n");
       } else if (status === 403) {
         setDeleteError("No ten\u00e9s permisos para anular esta operaci\u00f3n.");
       } else if (status === 404) {
@@ -302,14 +302,14 @@ export default function Reportes() {
       <AppHeader title="Reportes" />
       <div className="card">
         <h2>Historial del sistema</h2>
-        <p className="muted">Filtrá préstamos y pagos, y anulá movimientos.</p>
+        <p className="muted">FiltrÃ¡ prÃ©stamos y pagos, y anulÃ¡ movimientos.</p>
       </div>
 
       <div className="card">
         <div className="card-header">
           <div>
             <h3>Ganancia por mes</h3>
-            <p className="muted">Intereses según fecha real de pago.</p>
+            <p className="muted">Intereses segÃºn fecha real de pago.</p>
           </div>
           <div className="card-header-actions">
             <select value={profitYear} onChange={(event) => setProfitYear(Number(event.target.value))}>
@@ -331,7 +331,7 @@ export default function Reportes() {
                   <th>Mes</th>
                   <th>Mi ganancia</th>
                   <th>Intermediarios</th>
-                  <th>Total Interés</th>
+                  <th>Total InterÃ©s</th>
                 </tr>
               </thead>
               <tbody>
@@ -363,9 +363,9 @@ export default function Reportes() {
             Tipo
             <select value={type} onChange={(event) => setType(event.target.value)}>
               <option value="all">Todo</option>
-              <option value="loans">préstamos</option>
+              <option value="loans">prÃ©stamos</option>
               <option value="payments">Pagos</option>
-              <option value="usd">Dólares</option>
+              <option value="usd">DÃ³lares</option>
             </select>
           </label>
 
@@ -397,10 +397,10 @@ export default function Reportes() {
                   <tr>
                     <th>Fecha real</th>
                     <th>Cliente</th>
-                    <th>Préstamo</th>
+                    <th>PrÃ©stamo</th>
                     <th>Cuota</th>
                     <th>Monto</th>
-                    <th>Método</th>
+                    <th>MÃ©todo</th>
                     <th>Nota</th>
                     <th>Usuario</th>
                     <th>Estado</th>

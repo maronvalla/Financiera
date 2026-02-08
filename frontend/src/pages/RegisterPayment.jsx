@@ -156,7 +156,7 @@ export default function RegisterPayment() {
           isDni ? "No se encontró un cliente con ese DNI." : "No se encontraron clientes con ese nombre."
         );
       }
-    } catch (err) {
+    } catch {
       setSearchError("Error al conectar con el servidor");
     } finally {
       setSearching(false);
@@ -208,7 +208,7 @@ export default function RegisterPayment() {
       const items = Array.isArray(data?.items) ? data.items : [];
       const activeLoans = items.filter((loan) => getOutstanding(loan) > 0);
       setLoans(activeLoans);
-    } catch (err) {
+    } catch {
       setLoansError("Error al conectar con el servidor");
       setLoans([]);
     }
@@ -360,10 +360,10 @@ export default function RegisterPayment() {
   const canSubmit = isAmerican
     ? paidAtValid && selectedLoanId && totalValue > 0
     : form.amount &&
-      paidAtValid &&
-      selectedLoanId &&
-      form.installmentNumber &&
-      Number(form.amount) > 0;
+    paidAtValid &&
+    selectedLoanId &&
+    form.installmentNumber &&
+    Number(form.amount) > 0;
 
   return (
     <div className="container">

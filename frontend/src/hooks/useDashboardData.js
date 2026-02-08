@@ -23,7 +23,7 @@ export default function useDashboardData() {
         });
         setTransactions(Array.isArray(data?.transactions) ? data.transactions : []);
         setLoading(false);
-      } catch (error) {
+      } catch {
         if (!alive) return;
         setLoading(false);
       }
