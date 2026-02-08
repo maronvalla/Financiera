@@ -3,7 +3,8 @@ async function buildDueReport({ db, helpers, baseDate = new Date() }) {
   const loansSnap = await db.collection("loans").get();
 
   const customerCache = new Map();
-  const clientsMap = new Map();
+  const clientsSet = new Set();
+  const loans = [];
   let countLoans = 0;
 
   const resolveCustomer = async (loan) => {
@@ -61,7 +62,7 @@ async function buildDueReport({ db, helpers, baseDate = new Date() }) {
     const loan = docSnap.data() || {};
     if (loan.voided) continue;
     const normalizedStatus = helpers.normalizeLoanStatus(loan.status);
-    if (normalizedStatus === "void" || normalizedStatus === "rejected") continue;
+    if (normalizedStatus !== "active") continue;
     const fundingStatus = String(loan?.funding?.status || "").toUpperCase();
     if (fundingStatus === "PENDING" || fundingStatus === "REJECTED") continue;
 
@@ -92,48 +93,26 @@ async function buildDueReport({ db, helpers, baseDate = new Date() }) {
       }
     }
 
-    const total = helpers.roundMoney(overdue + dueToday);
-    if (total <= 0) continue;
+    if (overdue > 0) continue;
+    if (dueToday <= 0) continue;
 
     countLoans += 1;
     const customer = await resolveCustomer({ ...loan, id: docSnap.id });
-    const clientKey = customer.key;
-    if (!clientsMap.has(clientKey)) {
-      clientsMap.set(clientKey, {
-        key: clientKey,
-        name: customer.name,
-        dni: customer.dni,
-        phone: helpers.normalizePhone(customer.phone || ""),
-        loans: [],
-        totals: { overdue: 0, dueToday: 0, total: 0 },
-        types: new Set()
-      });
-    }
-
-    const client = clientsMap.get(clientKey);
-    client.types.add(loanType);
-    client.loans.push({
-      id: docSnap.id,
-      type: loanType,
-      overdue,
-      dueToday,
-      total
+    clientsSet.add(customer.key);
+    loans.push({
+      loanId: docSnap.id,
+      name: customer.name,
+      phone: helpers.normalizePhone(customer.phone || ""),
+      dueToday
     });
-    client.totals.overdue = helpers.roundMoney(client.totals.overdue + overdue);
-    client.totals.dueToday = helpers.roundMoney(client.totals.dueToday + dueToday);
-    client.totals.total = helpers.roundMoney(client.totals.total + total);
   }
 
-  const clients = Array.from(clientsMap.values()).map((client) => ({
-    ...client,
-    types: Array.from(client.types)
-  }));
-  clients.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  loans.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   return {
     dateKey,
-    clients,
-    countClients: clients.length,
+    loans,
+    countClients: clientsSet.size,
     countLoans
   };
 }

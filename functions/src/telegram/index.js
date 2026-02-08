@@ -19,30 +19,24 @@ function getTelegramConfig() {
   return { chatIds, token, debugSecret };
 }
 
-function buildMessage(report) {
-  const lines = [];
-  lines.push(`Recordatorios de cobro - ${report.dateKey}`);
-  lines.push("");
-
-  report.clients.forEach((client) => {
-    const headerParts = [client.name || "Sin nombre"];
-    if (client.dni) headerParts.push(`DNI ${client.dni}`);
-    if (client.phone) headerParts.push(`Tel ${client.phone}`);
-    lines.push(headerParts.join(" · "));
-    const typesLabel = client.types.length ? client.types.join(", ") : "simple";
-    lines.push(`Tipo: ${typesLabel}`);
-    lines.push(
-      `Lo vencido + lo de hoy: $${client.totals.overdue} + $${client.totals.dueToday} = $${client.totals.total}`
-    );
-    client.loans.forEach((loan) => {
-      lines.push(
-        `- Préstamo ${loan.id}: Vencido $${loan.overdue} | Hoy $${loan.dueToday} | Total $${loan.total}`
-      );
-    });
-    lines.push("----");
+function buildMessages(report) {
+  const formatter = new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2
   });
 
-  return lines.join("\n");
+  if (!report.loans.length) {
+    return [`Sin cobros para hoy (${report.dateKey}).`];
+  }
+
+  return report.loans.map((loan) => {
+    const lines = [];
+    lines.push(loan.name || "Sin nombre");
+    lines.push(`Tel: ${loan.phone || "-"}`);
+    lines.push(`Debe hoy: ${formatter.format(Number(loan.dueToday || 0))}`);
+    return lines.join("\n");
+  });
 }
 
 async function runTelegramDaily({ db, admin, helpers, force = false }) {
@@ -65,13 +59,15 @@ async function runTelegramDaily({ db, admin, helpers, force = false }) {
     throw new Error("TELEGRAM_CHAT_IDS no configurado.");
   }
 
-  const message = report.clients.length ? buildMessage(report) : `Sin cobros para hoy (${report.dateKey}).`;
-  const chunks = splitTelegramMessage(message);
+  const messages = buildMessages(report);
   const sentTo = [];
 
   for (const chatId of chatIds) {
-    for (const chunk of chunks) {
-      await sendTelegramMessage({ token, chatId, text: chunk });
+    for (const message of messages) {
+      const chunks = splitTelegramMessage(message);
+      for (const chunk of chunks) {
+        await sendTelegramMessage({ token, chatId, text: chunk });
+      }
     }
     sentTo.push(chatId);
   }
