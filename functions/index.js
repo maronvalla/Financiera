@@ -4708,9 +4708,37 @@ app.get("/dollars/stats", requireAuth, async (req, res) => {
 app.get("/dollars/stock", requireAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    const summarySnap = await db.collection("usdSummary").doc("primary").get();
+    const [summarySnap, usdLotsSnap] = await Promise.all([
+      db.collection("usdSummary").doc("primary").get(),
+      db.collection("usdLots").get()
+    ]);
     const availableUsd = summarySnap.exists ? Number(summarySnap.data().availableUsd || 0) : 0;
-    return res.json({ availableUsd });
+    const usdByType = {
+      blue: 0,
+      greenLarge: 0,
+      greenSmall: 0,
+      unknown: 0
+    };
+    usdLotsSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (data.voided || data.deletedAt) return;
+      const remainingUsd = Number(data.remainingUsd || 0);
+      if (!Number.isFinite(remainingUsd) || remainingUsd <= 0) return;
+      const type = normalizeUsdType(data.usdType);
+      if (type === "blue") usdByType.blue += remainingUsd;
+      else if (type === "green_large") usdByType.greenLarge += remainingUsd;
+      else if (type === "green_small") usdByType.greenSmall += remainingUsd;
+      else usdByType.unknown += remainingUsd;
+    });
+    return res.json({
+      availableUsd,
+      usdByType: {
+        blue: roundMoney(usdByType.blue),
+        greenLarge: roundMoney(usdByType.greenLarge),
+        greenSmall: roundMoney(usdByType.greenSmall),
+        unknown: roundMoney(usdByType.unknown)
+      }
+    });
   } catch (error) {
     return sendJsonError(res, 500, {
       code: "STOCK_FETCH_FAILED",

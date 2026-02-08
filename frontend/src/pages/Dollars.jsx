@@ -40,6 +40,12 @@ export default function Dollars() {
   const [savingBuy, setSavingBuy] = useState(false);
   const [savingSell, setSavingSell] = useState(false);
   const [usdOnHand, setUsdOnHand] = useState(0);
+  const [usdByType, setUsdByType] = useState({
+    blue: 0,
+    greenLarge: 0,
+    greenSmall: 0,
+    unknown: 0
+  });
   const [monthProfitArs, setMonthProfitArs] = useState(0);
   const [trades, setTrades] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -68,6 +74,12 @@ export default function Dollars() {
       if (stockRes.status === "fulfilled") {
         const availableUsd = Number(stockRes.value?.data?.availableUsd ?? 0);
         setUsdOnHand(availableUsd);
+        setUsdByType({
+          blue: Number(stockRes.value?.data?.usdByType?.blue ?? 0),
+          greenLarge: Number(stockRes.value?.data?.usdByType?.greenLarge ?? 0),
+          greenSmall: Number(stockRes.value?.data?.usdByType?.greenSmall ?? 0),
+          unknown: Number(stockRes.value?.data?.usdByType?.unknown ?? 0)
+        });
       }
       if (summaryRes.status === "fulfilled") {
         setMonthProfitArs(Number(summaryRes.value?.data?.monthProfitArs ?? 0));
@@ -125,6 +137,14 @@ export default function Dollars() {
   }, [trades]);
 
   const usdOnHandDisplay = Number(usdOnHand || 0);
+  const usdByTypeDisplay = useMemo(
+    () => ({
+      blue: Number(usdByType?.blue || 0),
+      greenLarge: Number(usdByType?.greenLarge || 0),
+      greenSmall: Number(usdByType?.greenSmall || 0)
+    }),
+    [usdByType]
+  );
 
   const monthProfit = useMemo(() => Number(monthProfitArs || 0), [monthProfitArs]);
 
@@ -438,6 +458,11 @@ export default function Dollars() {
               <div style={{ fontSize: "2rem", fontWeight: 700 }}>
                 {Number(usdOnHandDisplay || 0).toFixed(2)}
               </div>
+              <div className="muted" style={{ marginTop: "0.35rem" }}>
+                Azules: {usdByTypeDisplay.blue.toFixed(2)}
+              </div>
+              <div className="muted">Verde Cara Grande: {usdByTypeDisplay.greenLarge.toFixed(2)}</div>
+              <div className="muted">Verde Cara Chica: {usdByTypeDisplay.greenSmall.toFixed(2)}</div>
             </div>
             <div className="card">
               <div className="section-title">Ganancia realizada del mes</div>
