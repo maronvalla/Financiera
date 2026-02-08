@@ -87,7 +87,10 @@ function formatDetail(item) {
     const usdQty = Number(usd.usd || 0);
     const price = Number(usd.price || 0);
     const totalArs = Number(usd.totalArs || 0);
-    return `USD ${usdQty} · ${currencyFormatter.format(price)} · Total ${currencyFormatter.format(totalArs)}`;
+    const typeLabel = usd.usdTypeLabel || usd.usdType || "-";
+    return `USD ${usdQty} · ${typeLabel} · ${currencyFormatter.format(price)} · Total ${currencyFormatter.format(
+      totalArs
+    )}`;
   }
   return item.note || "-";
 }

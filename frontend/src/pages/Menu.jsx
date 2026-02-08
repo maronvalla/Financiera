@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useKpis from "../hooks/useKpis.js";
 import AppHeader from "../components/AppHeader.jsx";
 
@@ -18,7 +18,7 @@ function MenuCard({ title, description, onClick }) {
 
 export default function Menu() {
   const navigate = useNavigate();
-  const { collectedTotal, debtorsCount, interestMonth } = useKpis();
+  const { collectedTotal, debtorsCount, interestMonth, usdByType } = useKpis();
   const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -43,6 +43,15 @@ export default function Menu() {
           <div className="kpi-label">Interés ganado este mes</div>
           <div className="kpi-value">{currencyFormatter.format(interestMonth || 0)}</div>
           <div className="kpi-helper">Según pagos del mes en curso</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">USD por tipo</div>
+          <div className="kpi-value">
+            <div>Azules: {Number(usdByType?.blue || 0).toFixed(2)}</div>
+            <div>Verde Grande: {Number(usdByType?.greenLarge || 0).toFixed(2)}</div>
+            <div>Verde Chica: {Number(usdByType?.greenSmall || 0).toFixed(2)}</div>
+          </div>
+          <div className="kpi-helper">Stock actual por tipo de billete</div>
         </div>
       </div>
       <div className="card">

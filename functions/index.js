@@ -412,6 +412,29 @@ function computeInterestSplit(loan, interestTotal) {
   };
 }
 
+function normalizeUsdType(raw) {
+  const value = String(raw || "").trim().toLowerCase();
+  if (!value) return null;
+  if (value.includes("azul") || value.includes("blue")) return "blue";
+  if (value.includes("cara grande") || value.includes("grande")) return "green_large";
+  if (value.includes("cara chica") || value.includes("chica")) return "green_small";
+  if (value === "verde") return "green_large";
+  return null;
+}
+
+function formatUsdTypeLabel(type) {
+  switch (type) {
+    case "blue":
+      return "Azules";
+    case "green_large":
+      return "Verde Cara Grande";
+    case "green_small":
+      return "Verde Cara Chica";
+    default:
+      return "Sin tipo";
+  }
+}
+
 function formatMonthKey(date) {
   if (!date) return null;
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -4461,16 +4484,35 @@ app.get("/treasury", requireAuth, async (req, res) => {
 app.get("/reports/kpis", requireAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    const [treasurySnap, loansSnap, profitSnap] = await Promise.all([
+    const [treasurySnap, loansSnap, profitSnap, usdLotsSnap] = await Promise.all([
       db.collection("treasurySummary").doc("primary").get(),
       db.collection("loans").where("balance", ">", 0).get(),
-      db.collection("profitMonthly").doc(formatMonthKey(new Date())).get()
+      db.collection("profitMonthly").doc(formatMonthKey(new Date())).get(),
+      db.collection("usdLots").get()
     ]);
 
     const treasury = treasurySnap.exists ? treasurySnap.data() || {} : {};
     const collectedTotal = Number(treasury.totalCollectedArs || 0);
     const profitData = profitSnap.exists ? profitSnap.data() || {} : {};
     const interestMonth = Number(profitData.mineArs || 0);
+
+    const usdByType = {
+      blue: 0,
+      greenLarge: 0,
+      greenSmall: 0,
+      unknown: 0
+    };
+    usdLotsSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (data.voided || data.deletedAt) return;
+      const remainingUsd = Number(data.remainingUsd || 0);
+      if (!Number.isFinite(remainingUsd) || remainingUsd <= 0) return;
+      const type = normalizeUsdType(data.usdType);
+      if (type === "blue") usdByType.blue += remainingUsd;
+      else if (type === "green_large") usdByType.greenLarge += remainingUsd;
+      else if (type === "green_small") usdByType.greenSmall += remainingUsd;
+      else usdByType.unknown += remainingUsd;
+    });
 
     const activeDebtors = new Set();
     loansSnap.docs.forEach((docSnap) => {
@@ -4490,7 +4532,13 @@ app.get("/reports/kpis", requireAuth, async (req, res) => {
       item: {
         collectedTotal,
         debtorsCount: activeDebtors.size,
-        interestMonth
+        interestMonth,
+        usdByType: {
+          blue: roundMoney(usdByType.blue),
+          greenLarge: roundMoney(usdByType.greenLarge),
+          greenSmall: roundMoney(usdByType.greenSmall),
+          unknown: roundMoney(usdByType.unknown)
+        }
       }
     });
   } catch (error) {
@@ -4952,9 +5000,11 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
       req.body.precioCompra ??
       req.body.precio ??
       req.body.precioARS;
+    const typeRaw = req.body.usdType ?? req.body.type ?? req.body.dollarType ?? "";
     const usd = toNumberLoose(usdRaw);
     const price = toNumberLoose(priceRaw);
     const note = String(req.body.note || "").trim();
+    const usdType = normalizeUsdType(typeRaw);
     const occurredAtValue = req.body.createdAt ? parseCreatedAt(req.body.createdAt, null) : null;
     const occurredAt =
       occurredAtValue && !Number.isNaN(occurredAtValue.getTime())
@@ -4964,6 +5014,7 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
     const invalidFields = [];
     if (!Number.isFinite(usd) || usd <= 0) invalidFields.push("usd");
     if (!Number.isFinite(price) || price <= 0) invalidFields.push("price");
+    if (!usdType) invalidFields.push("usdType");
 
     if (invalidFields.length) {
       return res.status(400).json({
@@ -4996,7 +5047,8 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
         remainingUsd: usd,
         buyPrice: price,
         note: note || "",
-        type: "buy"
+        type: "buy",
+        usdType
       });
 
       tx.set(movementRef, {
@@ -5008,6 +5060,7 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
         totalArs: usd * price,
         note: note || "",
         lotId: lotRef.id,
+        usdType,
         voided: false
       });
 
@@ -5019,7 +5072,9 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
           usd: {
             usd,
             price,
-            totalArs: usd * price
+            totalArs: usd * price,
+            usdType,
+            usdTypeLabel: formatUsdTypeLabel(usdType)
           },
           note: note || "",
           occurredAt,

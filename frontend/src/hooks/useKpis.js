@@ -6,7 +6,13 @@ export default function useKpis() {
     loading: true,
     collectedTotal: 0,
     debtorsCount: 0,
-    interestMonth: 0
+    interestMonth: 0,
+    usdByType: {
+      blue: 0,
+      greenLarge: 0,
+      greenSmall: 0,
+      unknown: 0
+    }
   });
 
   useEffect(() => {
@@ -22,7 +28,13 @@ export default function useKpis() {
           loading: false,
           collectedTotal: Number(payload.collectedTotal || 0),
           debtorsCount: Number(payload.debtorsCount || 0),
-          interestMonth: Number(payload.interestMonth || 0)
+          interestMonth: Number(payload.interestMonth || 0),
+          usdByType: {
+            blue: Number(payload?.usdByType?.blue || 0),
+            greenLarge: Number(payload?.usdByType?.greenLarge || 0),
+            greenSmall: Number(payload?.usdByType?.greenSmall || 0),
+            unknown: Number(payload?.usdByType?.unknown || 0)
+          }
         });
       } catch {
         if (!alive) return;

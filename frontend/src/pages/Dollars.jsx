@@ -31,7 +31,7 @@ function toDate(value) {
 export default function Dollars() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("buy");
-  const [buyForm, setBuyForm] = useState({ qtyUsd: "", buyPrice: "", note: "" });
+  const [buyForm, setBuyForm] = useState({ qtyUsd: "", buyPrice: "", note: "", usdType: "blue" });
   const [sellForm, setSellForm] = useState({ qtyUsd: "", sellPrice: "", note: "" });
   const [buyError, setBuyError] = useState("");
   const [buyMessage, setBuyMessage] = useState("");
@@ -174,9 +174,10 @@ export default function Dollars() {
       await api.post("/dollars/buy", {
         usd: qty,
         price,
-        note: buyForm.note.trim()
+        note: buyForm.note.trim(),
+        usdType: buyForm.usdType
       });
-      setBuyForm({ qtyUsd: "", buyPrice: "", note: "" });
+      setBuyForm({ qtyUsd: "", buyPrice: "", note: "", usdType: "blue" });
       setBuyMessage("Compra registrada correctamente.");
       fetchData();
     } catch (err) {
@@ -324,6 +325,14 @@ export default function Dollars() {
         <div className="card">
           <form className="form form-grid" onSubmit={handleBuySubmit}>
             <label>
+              Tipo de USD
+              <select value={buyForm.usdType} onChange={handleBuyChange("usdType")}>
+                <option value="blue">Azules</option>
+                <option value="green_large">Verde Cara Grande</option>
+                <option value="green_small">Verde Cara Chica</option>
+              </select>
+            </label>
+            <label>
               Cantidad USD
               <input
                 type="number"
@@ -449,6 +458,7 @@ export default function Dollars() {
                     <tr>
                       <th>Fecha</th>
                       <th>Tipo</th>
+                      <th>Tipo USD</th>
                       <th>Cantidad USD</th>
                       <th>Precio</th>
                       <th>Total ARS</th>
@@ -475,6 +485,15 @@ export default function Dollars() {
                         <tr key={trade.id}>
                           <td>{tradeDate ? dateFormatter.format(tradeDate) : "Sin fecha"}</td>
                           <td>{trade.type === "buy" ? "Compra" : "Venta"}</td>
+                          <td>
+                            {trade.type === "buy"
+                              ? trade.usdType === "green_large"
+                                ? "Verde Cara Grande"
+                                : trade.usdType === "green_small"
+                                  ? "Verde Cara Chica"
+                                  : "Azules"
+                              : "-"}
+                          </td>
                           <td>{Number(trade.usd ?? 0)}</td>
                           <td>{currencyFormatter.format(Number(trade.price ?? 0))}</td>
                           <td>{currencyFormatter.format(Number(trade.totalArs || 0))}</td>
