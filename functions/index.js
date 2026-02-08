@@ -4845,7 +4845,7 @@ app.get("/dollars/stock", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/dollars/summary", requireAuth, async (req, res) => {
+app.get("/dollars/summary", requireAuth, requireRole(["admin"]), async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const summarySnap = await db.collection("usdSummary").doc("primary").get();
@@ -4891,7 +4891,7 @@ app.get("/dollars/summary", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/dollars/movements", requireAuth, async (req, res) => {
+app.get("/dollars/movements", requireAuth, requireRole(["admin"]), async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const snap = await db.collection("usdMovements").orderBy("createdAt", "asc").get();
@@ -5091,7 +5091,7 @@ app.delete("/dollars/movements/:id", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/dollars/trades", requireAuth, async (req, res) => {
+app.get("/dollars/trades", requireAuth, requireRole(["admin"]), async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const snap = await db.collection("usdMovements").orderBy("createdAt", "asc").get();

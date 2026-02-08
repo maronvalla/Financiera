@@ -58,37 +58,52 @@ export default function Dollars() {
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const canViewReports = isAdmin;
   const fetchData = async () => {
     setLoadingData(true);
     setSummaryError("");
     try {
-      const results = await Promise.allSettled([
-        api.get("/dollars/trades"),
-        api.get("/dollars/stock"),
-        api.get("/dollars/summary")
-      ]);
-      const [tradesRes, stockRes, summaryRes] = results;
-      if (tradesRes.status === "fulfilled") {
-        setTrades(Array.isArray(tradesRes.value?.data?.items) ? tradesRes.value.data.items : []);
-      }
-      if (stockRes.status === "fulfilled") {
-        const availableUsd = Number(stockRes.value?.data?.availableUsd ?? 0);
+      if (canViewReports) {
+        const results = await Promise.allSettled([
+          api.get("/dollars/trades"),
+          api.get("/dollars/stock"),
+          api.get("/dollars/summary")
+        ]);
+        const [tradesRes, stockRes, summaryRes] = results;
+        if (tradesRes.status === "fulfilled") {
+          setTrades(Array.isArray(tradesRes.value?.data?.items) ? tradesRes.value.data.items : []);
+        }
+        if (stockRes.status === "fulfilled") {
+          const availableUsd = Number(stockRes.value?.data?.availableUsd ?? 0);
+          setUsdOnHand(availableUsd);
+          setUsdByType({
+            blue: Number(stockRes.value?.data?.usdByType?.blue ?? 0),
+            greenLarge: Number(stockRes.value?.data?.usdByType?.greenLarge ?? 0),
+            greenSmall: Number(stockRes.value?.data?.usdByType?.greenSmall ?? 0),
+            unknown: Number(stockRes.value?.data?.usdByType?.unknown ?? 0)
+          });
+        }
+        if (summaryRes.status === "fulfilled") {
+          setMonthProfitArs(Number(summaryRes.value?.data?.monthProfitArs ?? 0));
+        } else {
+          const message =
+            summaryRes.reason?.response?.data?.message ||
+            summaryRes.reason?.message ||
+            "No se pudo cargar el resumen USD.";
+          setSummaryError(message);
+        }
+      } else {
+        const stockRes = await api.get("/dollars/stock");
+        const availableUsd = Number(stockRes?.data?.availableUsd ?? 0);
         setUsdOnHand(availableUsd);
         setUsdByType({
-          blue: Number(stockRes.value?.data?.usdByType?.blue ?? 0),
-          greenLarge: Number(stockRes.value?.data?.usdByType?.greenLarge ?? 0),
-          greenSmall: Number(stockRes.value?.data?.usdByType?.greenSmall ?? 0),
-          unknown: Number(stockRes.value?.data?.usdByType?.unknown ?? 0)
+          blue: Number(stockRes?.data?.usdByType?.blue ?? 0),
+          greenLarge: Number(stockRes?.data?.usdByType?.greenLarge ?? 0),
+          greenSmall: Number(stockRes?.data?.usdByType?.greenSmall ?? 0),
+          unknown: Number(stockRes?.data?.usdByType?.unknown ?? 0)
         });
-      }
-      if (summaryRes.status === "fulfilled") {
-        setMonthProfitArs(Number(summaryRes.value?.data?.monthProfitArs ?? 0));
-      } else {
-        const message =
-          summaryRes.reason?.response?.data?.message ||
-          summaryRes.reason?.message ||
-          "No se pudo cargar el resumen USD.";
-        setSummaryError(message);
+        setTrades([]);
+        setMonthProfitArs(0);
       }
     } finally {
       setLoadingData(false);
@@ -97,7 +112,7 @@ export default function Dollars() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [canViewReports]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)");
@@ -122,6 +137,12 @@ export default function Dollars() {
     const timer = window.setTimeout(() => setToastMessage(""), 2500);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
+
+  useEffect(() => {
+    if (!canViewReports && activeTab === "reports") {
+      setActiveTab("buy");
+    }
+  }, [canViewReports, activeTab]);
 
   const reportRows = useMemo(() => {
     const ordered = [...trades].sort((a, b) => {
@@ -339,13 +360,15 @@ export default function Dollars() {
           >
             Registrar venta
           </button>
-          <button
-            type="button"
-            className={activeTab === "reports" ? "btn-primary" : "btn-secondary"}
-            onClick={() => setActiveTab("reports")}
-          >
-            Reportes
-          </button>
+          {canViewReports && (
+            <button
+              type="button"
+              className={activeTab === "reports" ? "btn-primary" : "btn-secondary"}
+              onClick={() => setActiveTab("reports")}
+            >
+              Reportes
+            </button>
+          )}
         </div>
       </div>
 
@@ -458,7 +481,7 @@ export default function Dollars() {
         </div>
       )}
 
-      {activeTab === "reports" && (
+      {canViewReports && activeTab === "reports" && (
         <div className="stack">
           <div className="grid">
             <div className="card">
