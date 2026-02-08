@@ -547,6 +547,18 @@ function formatMonthKey(date) {
   return `${parts.year}-${parts.month}`;
 }
 
+function parseDolarValue(value) {
+  const cleaned = String(value || "").trim().replace(/[^\d.,]/g, "");
+  if (!cleaned) return null;
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    return Number.parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
+  }
+  if (cleaned.includes(",")) {
+    return Number.parseFloat(cleaned.replace(",", "."));
+  }
+  return Number.parseFloat(cleaned);
+}
+
 function buildMovementPayload({
   type,
   customer = null,
@@ -4888,6 +4900,37 @@ app.get("/dollars/summary", requireAuth, requireRole(["admin"]), async (req, res
       message: "No se pudo cargar el resumen USD.",
       details: error.message || null
     });
+  }
+});
+
+app.get("/dollars/reference", requireAuth, async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const response = await fetch("https://dolarhoy.com/i/cotizaciones/dolar-blue", {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      return res.status(502).json({ message: "No se pudo obtener referencia." });
+    }
+    const text = await response.text();
+    const buyMatch = text.match(/([\d.,]+)\s*Compra/i);
+    const sellMatch = text.match(/([\d.,]+)\s*Venta/i);
+    const buy = parseDolarValue(buyMatch ? buyMatch[1] : null);
+    const sell = parseDolarValue(sellMatch ? sellMatch[1] : null);
+    if (!Number.isFinite(buy) || !Number.isFinite(sell)) {
+      return res.status(502).json({ message: "Referencia inválida." });
+    }
+    return res.json({
+      source: "dolarhoy",
+      buy,
+      sell,
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    return res.status(502).json({ message: "No se pudo obtener referencia." });
   }
 });
 

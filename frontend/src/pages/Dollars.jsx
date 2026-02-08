@@ -37,6 +37,7 @@ export default function Dollars() {
   const [buyMessage, setBuyMessage] = useState("");
   const [sellError, setSellError] = useState("");
   const [sellMessage, setSellMessage] = useState("");
+  const [reference, setReference] = useState({ buy: null, sell: null, loading: false, error: "" });
   const [savingBuy, setSavingBuy] = useState(false);
   const [savingSell, setSavingSell] = useState(false);
   const [usdOnHand, setUsdOnHand] = useState(0);
@@ -110,8 +111,28 @@ export default function Dollars() {
     }
   };
 
+  const fetchReference = async () => {
+    setReference((prev) => ({ ...prev, loading: true, error: "" }));
+    try {
+      const { data } = await api.get("/dollars/reference");
+      setReference({
+        buy: Number(data?.buy ?? null),
+        sell: Number(data?.sell ?? null),
+        loading: false,
+        error: ""
+      });
+    } catch (error) {
+      setReference((prev) => ({
+        ...prev,
+        loading: false,
+        error: error?.response?.data?.message || "No se pudo cargar la referencia."
+      }));
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchReference();
   }, [canViewReports]);
 
   useEffect(() => {
@@ -405,6 +426,33 @@ export default function Dollars() {
                 required
               />
             </label>
+            <div className="span-full" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span className="muted">
+                Referencia compra:{" "}
+                {reference.loading
+                  ? "Cargando..."
+                  : Number.isFinite(reference.buy)
+                    ? currencyFormatter.format(reference.buy)
+                    : "Sin datos"}
+              </span>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() =>
+                  setBuyForm((prev) => ({
+                    ...prev,
+                    buyPrice:
+                      Number.isFinite(reference.buy) && reference.buy !== null
+                        ? String(reference.buy)
+                        : prev.buyPrice
+                  }))
+                }
+                disabled={!Number.isFinite(reference.buy)}
+              >
+                Usar
+              </button>
+              {reference.error && <span className="muted">{reference.error}</span>}
+            </div>
             <label>
               Nota
               <input value={buyForm.note} onChange={handleBuyChange("note")} />
@@ -455,6 +503,33 @@ export default function Dollars() {
                 required
               />
             </label>
+            <div className="span-full" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span className="muted">
+                Referencia venta:{" "}
+                {reference.loading
+                  ? "Cargando..."
+                  : Number.isFinite(reference.sell)
+                    ? currencyFormatter.format(reference.sell)
+                    : "Sin datos"}
+              </span>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() =>
+                  setSellForm((prev) => ({
+                    ...prev,
+                    sellPrice:
+                      Number.isFinite(reference.sell) && reference.sell !== null
+                        ? String(reference.sell)
+                        : prev.sellPrice
+                  }))
+                }
+                disabled={!Number.isFinite(reference.sell)}
+              >
+                Usar
+              </button>
+              {reference.error && <span className="muted">{reference.error}</span>}
+            </div>
             <label>
               Nota
               <input value={sellForm.note} onChange={handleSellChange("note")} />
