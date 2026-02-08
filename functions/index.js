@@ -414,9 +414,17 @@ function computeInterestSplit(loan, interestTotal) {
 
 function formatMonthKey(date) {
   if (!date) return null;
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit"
+  });
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+  if (!parts.year || !parts.month) return null;
+  return `${parts.year}-${parts.month}`;
 }
 
 function buildMovementPayload({
@@ -3717,9 +3725,10 @@ app.post("/profits/rebuild", requireAuth, async (req, res) => {
       if (data.voided === true) return;
       const paidAtDate = toDateValue(data.paidAt) || toDateValue(data.createdAt);
       if (!paidAtDate) return;
-      const paidYear = String(paidAtDate.getUTCFullYear());
-      if (paidYear !== year) return;
       const monthKey = formatMonthKey(paidAtDate);
+      if (!monthKey) return;
+      const paidYear = monthKey.slice(0, 4);
+      if (paidYear !== year) return;
       if (!summary.has(monthKey)) return;
       const interestTotal = Number((data.interestTotal ?? data.interestPaid) || 0);
       const interestMine = Number((data.interestMine ?? data.interestPaid) || 0);
@@ -4365,7 +4374,9 @@ app.post("/treasury/rebuild", requireAuth, async (req, res) => {
 app.get("/treasury", requireAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    const year = String(req.query.year || "").trim() || String(new Date().getUTCFullYear());
+    const currentMonthKey = formatMonthKey(new Date());
+    const year =
+      String(req.query.year || "").trim() || (currentMonthKey ? currentMonthKey.slice(0, 4) : "");
     if (!/^\d{4}$/.test(year)) {
       return res.status(400).json({ message: "Año inválido." });
     }
@@ -4412,9 +4423,10 @@ app.get("/treasury", requireAuth, async (req, res) => {
 
       const dateValue = toDateValue(data.date) || toDateValue(data.createdAt);
       if (!dateValue) return;
-      const entryYear = String(dateValue.getUTCFullYear());
-      if (entryYear !== year) return;
       const monthKey = formatMonthKey(dateValue);
+      if (!monthKey) return;
+      const entryYear = monthKey.slice(0, 4);
+      if (entryYear !== year) return;
       if (!monthly.has(monthKey)) return;
       const monthRow = monthly.get(monthKey);
       const mine = Number(data.interestMineARS || 0);
@@ -4665,8 +4677,7 @@ app.get("/dollars/summary", requireAuth, async (req, res) => {
     res.set("Cache-Control", "no-store");
     const summarySnap = await db.collection("usdSummary").doc("primary").get();
     const data = summarySnap.exists ? summarySnap.data() || {} : {};
-    const now = new Date();
-    const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const monthKey = formatMonthKey(new Date());
 
     const movementsSnap = await db.collection("usdMovements").get();
 
