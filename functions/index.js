@@ -5171,11 +5171,9 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
       req.body.precio ??
       req.body.precioARS;
     const typeRaw = req.body.usdType ?? req.body.type ?? req.body.dollarType ?? "";
-    const typeRaw = req.body.usdType ?? req.body.type ?? req.body.dollarType ?? "";
     const usd = toNumberLoose(usdRaw);
     const price = toNumberLoose(priceRaw);
     const note = String(req.body.note || "").trim();
-    const usdType = normalizeUsdType(typeRaw);
     const usdType = normalizeUsdType(typeRaw);
     const occurredAtValue = req.body.createdAt ? parseCreatedAt(req.body.createdAt, null) : null;
     const occurredAt =
@@ -5186,7 +5184,6 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
     const invalidFields = [];
     if (!Number.isFinite(usd) || usd <= 0) invalidFields.push("usd");
     if (!Number.isFinite(price) || price <= 0) invalidFields.push("price");
-    if (!usdType) invalidFields.push("usdType");
     if (!usdType) invalidFields.push("usdType");
 
     if (invalidFields.length) {
