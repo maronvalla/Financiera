@@ -5092,7 +5092,9 @@ app.delete("/dollars/movements/:id", requireAuth, async (req, res) => {
             usd: movementUsd,
             price: Number(movement.price || 0),
             totalArs: Number(movement.totalArs || 0),
-            profitArs: Number(movement.profitArs || movement.profitArsTotal || 0)
+            profitArs: Number(movement.profitArs || movement.profitArsTotal || 0),
+            usdType: movement.usdType || null,
+            usdTypeLabel: formatUsdTypeLabel(movement.usdType)
           },
           note: reason || "",
           occurredAt: movement.occurredAt || null,
@@ -5169,9 +5171,11 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
       req.body.precio ??
       req.body.precioARS;
     const typeRaw = req.body.usdType ?? req.body.type ?? req.body.dollarType ?? "";
+    const typeRaw = req.body.usdType ?? req.body.type ?? req.body.dollarType ?? "";
     const usd = toNumberLoose(usdRaw);
     const price = toNumberLoose(priceRaw);
     const note = String(req.body.note || "").trim();
+    const usdType = normalizeUsdType(typeRaw);
     const usdType = normalizeUsdType(typeRaw);
     const occurredAtValue = req.body.createdAt ? parseCreatedAt(req.body.createdAt, null) : null;
     const occurredAt =
@@ -5182,6 +5186,7 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
     const invalidFields = [];
     if (!Number.isFinite(usd) || usd <= 0) invalidFields.push("usd");
     if (!Number.isFinite(price) || price <= 0) invalidFields.push("price");
+    if (!usdType) invalidFields.push("usdType");
     if (!usdType) invalidFields.push("usdType");
 
     if (invalidFields.length) {
@@ -5442,6 +5447,7 @@ app.post("/dollars/sell", requireAuth, async (req, res) => {
         fifoBreakdown,
         profitArsTotal,
         profitArs: profitArsTotal,
+        usdType,
         voided: false
       });
 
@@ -5454,7 +5460,9 @@ app.post("/dollars/sell", requireAuth, async (req, res) => {
             usd,
             price,
             totalArs: usd * price,
-            profitArs: profitArsTotal
+            profitArs: profitArsTotal,
+            usdType,
+            usdTypeLabel: formatUsdTypeLabel(usdType)
           },
           note: note || "",
           occurredAt,

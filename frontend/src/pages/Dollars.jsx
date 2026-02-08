@@ -32,7 +32,7 @@ export default function Dollars() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("buy");
   const [buyForm, setBuyForm] = useState({ qtyUsd: "", buyPrice: "", note: "", usdType: "blue" });
-  const [sellForm, setSellForm] = useState({ qtyUsd: "", sellPrice: "", note: "" });
+  const [sellForm, setSellForm] = useState({ qtyUsd: "", sellPrice: "", note: "", usdType: "blue" });
   const [buyError, setBuyError] = useState("");
   const [buyMessage, setBuyMessage] = useState("");
   const [sellError, setSellError] = useState("");
@@ -276,9 +276,10 @@ export default function Dollars() {
       await api.post("/dollars/sell", {
         usd: qty,
         price,
-        note: sellForm.note.trim()
+        note: sellForm.note.trim(),
+        usdType: sellForm.usdType
       });
-      setSellForm({ qtyUsd: "", sellPrice: "", note: "" });
+      setSellForm({ qtyUsd: "", sellPrice: "", note: "", usdType: "blue" });
       setSellMessage("Venta registrada correctamente.");
       fetchData();
     } catch (err) {
@@ -399,6 +400,14 @@ export default function Dollars() {
             <label>
               Tipo de USD
               <select value={buyForm.usdType} onChange={handleBuyChange("usdType")}>
+                <option value="blue">Azules</option>
+                <option value="green_large">Verde Cara Grande</option>
+                <option value="green_small">Verde Cara Chica</option>
+              </select>
+            </label>
+            <label>
+              Tipo de USD
+              <select value={sellForm.usdType} onChange={handleSellChange("usdType")}>
                 <option value="blue">Azules</option>
                 <option value="green_large">Verde Cara Grande</option>
                 <option value="green_small">Verde Cara Chica</option>
@@ -617,13 +626,13 @@ export default function Dollars() {
                           <td>{tradeDate ? dateFormatter.format(tradeDate) : "Sin fecha"}</td>
                           <td>{trade.type === "buy" ? "Compra" : "Venta"}</td>
                           <td>
-                            {trade.type === "buy"
-                              ? trade.usdType === "green_large"
-                                ? "Verde Cara Grande"
-                                : trade.usdType === "green_small"
-                                  ? "Verde Cara Chica"
-                                  : "Azules"
-                              : "-"}
+                            {trade.usdType === "green_large"
+                              ? "Verde Cara Grande"
+                              : trade.usdType === "green_small"
+                                ? "Verde Cara Chica"
+                                : trade.usdType
+                                  ? "Azules"
+                                  : "-"}
                           </td>
                           <td>{Number(trade.usd ?? 0)}</td>
                           <td>{currencyFormatter.format(Number(trade.price ?? 0))}</td>
