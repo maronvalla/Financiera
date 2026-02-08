@@ -124,8 +124,15 @@ export default function Dollars() {
   }, [toastMessage]);
 
   const reportRows = useMemo(() => {
+    const ordered = [...trades].sort((a, b) => {
+      const dateA = toDate(a.occurredAt || a.createdAt);
+      const dateB = toDate(b.occurredAt || b.createdAt);
+      const timeA = dateA ? dateA.getTime() : 0;
+      const timeB = dateB ? dateB.getTime() : 0;
+      return timeA - timeB;
+    });
     let stock = 0;
-    return trades.map((trade) => {
+    const withStock = ordered.map((trade) => {
       const qty = Number(trade.usd ?? 0);
       if (trade.type === "buy") {
         stock += qty;
@@ -134,6 +141,7 @@ export default function Dollars() {
       }
       return { ...trade, stockAfter: stock };
     });
+    return withStock.reverse();
   }, [trades]);
 
   const usdOnHandDisplay = Number(usdOnHand || 0);
