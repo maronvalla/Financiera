@@ -414,7 +414,7 @@ function computeInterestSplit(loan, interestTotal) {
 
 function normalizeUsdType(raw) {
   const value = String(raw || "").trim().toLowerCase();
-  if (!value) return null;
+  if (!value) return "blue";
   if (value.includes("azul") || value.includes("blue")) return "blue";
   if (value.includes("cara grande") || value.includes("grande")) return "green_large";
   if (value.includes("cara chica") || value.includes("chica")) return "green_small";
