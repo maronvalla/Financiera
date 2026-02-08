@@ -5037,7 +5037,7 @@ app.post("/dollars/buy", requireAuth, async (req, res) => {
     const occurredAt =
       occurredAtValue && !Number.isNaN(occurredAtValue.getTime())
         ? occurredAtValue.toISOString().slice(0, 10)
-        : null;
+        : getArgentinaDateString(new Date());
 
     const invalidFields = [];
     if (!Number.isFinite(usd) || usd <= 0) invalidFields.push("usd");
@@ -5155,7 +5155,7 @@ app.post("/dollars/sell", requireAuth, async (req, res) => {
     const occurredAt =
       occurredAtValue && !Number.isNaN(occurredAtValue.getTime())
         ? occurredAtValue.toISOString().slice(0, 10)
-        : null;
+        : getArgentinaDateString(new Date());
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
